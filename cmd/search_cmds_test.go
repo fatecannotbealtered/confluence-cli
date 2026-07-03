@@ -234,3 +234,26 @@ func itoa(n int) string {
 	}
 	return string(b)
 }
+
+func TestSearch_ExcerptHighlightMarkersStripped(t *testing.T) {
+	mockConfluenceServer(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"results":[{"content":{"id":"1","type":"page","space":{"key":"DEV"},"_links":{"webui":"/x"}},"title":"T","excerpt":"the @@@hl@@@roadmap@@@endhl@@@ plan","url":"/x","entityType":"content","lastModified":"2026-06-01T00:00:00.000Z"}],"start":0,"limit":25,"size":1,"totalSize":1,"_links":{}}`))
+	})
+	stdout, _ := runRootOK(t, "search", "--text", "roadmap", "--compact")
+	var data struct {
+		Results []struct {
+			Excerpt string `json:"excerpt"`
+		} `json:"results"`
+	}
+	decodeEnvelopeData(t, stdout, &data)
+	if len(data.Results) != 1 {
+		t.Fatalf("results=%d", len(data.Results))
+	}
+	ex := data.Results[0].Excerpt
+	if strings.Contains(ex, "@@@") {
+		t.Fatalf("highlight markers not stripped: %q", ex)
+	}
+	if !strings.Contains(ex, "roadmap") {
+		t.Fatalf("matched text lost: %q", ex)
+	}
+}

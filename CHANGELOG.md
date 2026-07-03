@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **`release_readiness` promoted to `stable`.** All 40 leaves were exercised live against a production Confluence DC (read + write + dangerous, self-cleaned); see docs/LIVE-SMOKE-EVIDENCE.md. `doctor`'s server check now reports `pass` when the version endpoint is unavailable (connectivity is already proven by the auth check) instead of a spurious `warn`.
 
 ### Fixed
+- **`search` excerpts are cleaned of raw highlight markers.** The server wraps matched terms in `@@@hl@@@...@@@endhl@@@`; these delimiters are now stripped so agents get clean prose (the matched text is preserved).
 - **`page delete` no longer hard-fails when the descendant endpoint is unimplemented.** The dry-run preview counted descendants via `/content/{id}/descendant/page`, which some Confluence DC versions return `501` for; the delete was fully blocked as a result. The count is now best-effort (falls back to direct children, then to `unknown`) and never blocks the delete. Found and fixed during live smoke.
 - **`search` results now carry `space_key`.** `/rest/api/search` does not expand the content's space by default, so every search result returned an empty `space_key`; the request now sends `expand=content.space`. Verified live against a production Confluence DC.
 

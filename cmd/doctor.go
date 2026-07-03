@@ -84,11 +84,14 @@ func runDoctor(_ *cobra.Command, _ []string) error {
 	result.Username = me.Username
 	result.DisplayName = me.DisplayName
 
-	// Step 4: server version (settings/systemInfo). Non-fatal: some instances
-	// restrict this endpoint to admins.
+	// Step 4: server version (settings/systemInfo). Best effort: some DC
+	// versions do not serve this endpoint (404) or restrict it to admins. Since
+	// the auth step already proved the server is reachable and the PAT is valid,
+	// an unreadable version is informational, not a warning — report pass with
+	// the version omitted rather than flagging a healthy instance.
 	if info, err := client.System.SystemInfo(); err != nil {
-		addCheck("server", "warn", "could not read settings/systemInfo: "+err.Error(),
-			"endpoint may be admin-only; connectivity is otherwise fine")
+		addCheck("server", "pass", "connected; server version endpoint unavailable on this instance",
+			"")
 	} else {
 		result.ServerVersion = info.Version
 		addCheck("server", "pass", "Confluence server version "+info.Version, "")

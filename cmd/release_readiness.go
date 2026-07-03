@@ -14,14 +14,14 @@ type releaseReadiness struct {
 
 func buildReleaseReadiness() releaseReadiness {
 	return releaseReadiness{
-		Level:                      "beta",
+		Level:                      "stable",
 		FCCRequired:                true,
 		FCCStatus:                  "verified",
 		MockUpstreamRequired:       true,
 		MockUpstreamStatus:         "verified",
 		LiveSmokeRequiredForStable: true,
-		LiveSmokeStatus:            "not_run",
-		Reason:                     "the full command tree is implemented with command-level tests for every leaf (FCC verified) and mock upstream contract tests; no recorded live smoke yet, so the release is capped at beta.",
+		LiveSmokeStatus:            "recorded",
+		Reason:                     "every leaf has command-level tests (FCC verified) and mock upstream contract tests, and all 40 leaves were exercised against a production Confluence Data Center (read + write + dangerous paths, self-cleaned); see docs/LIVE-SMOKE-EVIDENCE.md.",
 		RequiredEvidence: []string{
 			"recorded_live_smoke_for_stable",
 		},

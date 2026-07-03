@@ -334,10 +334,20 @@ func searchResultMaps(results []api.SearchResult) []map[string]any {
 			"title":         r.Title,
 			"space_key":     spaceKey,
 			"url":           r.WebURL,
-			"excerpt":       r.Excerpt,
+			"excerpt":       cleanExcerpt(r.Excerpt),
 			"last_modified": r.LastModified,
 			"_untrusted":    []string{"title", "excerpt"},
 		})
 	}
 	return out
+}
+
+// excerptHighlight strips Confluence's raw match-highlight delimiters
+// (@@@hl@@@term@@@endhl@@@) that the server wraps around matched terms in
+// highlighted excerpts. Agents want clean prose to judge relevance; the raw
+// markers are noise. The matched text itself is preserved.
+var excerptHighlight = strings.NewReplacer("@@@hl@@@", "", "@@@endhl@@@", "")
+
+func cleanExcerpt(s string) string {
+	return excerptHighlight.Replace(s)
 }
