@@ -40,3 +40,37 @@ Data Center** instance.
 
 All read paths are live-verified. Writes were not exercised (read-only token
 policy for this session).
+
+## 2026-07-03 — v0.1.0 write-path smoke (live, personal space, self-cleaned)
+
+Run against the same production Confluence DC, **scoped entirely to the caller's
+personal space** (`~<user>`). Every resource was created under one throwaway
+root page and **purged at the end**; the instance was left clean (all test IDs
+verified `E_NOT_FOUND` afterwards). All writes used the `--dry-run` →
+`--confirm <token>` two-step; dangerous commands required `--dangerous` on both.
+
+| Command / behavior | Result | Notes |
+|---|---|---|
+| `page create` (root + child + parent2) | PASS | markdown→storage body; child created under `--parent` |
+| `page update` | PASS | title+body change; version 1→2; read-back confirmed |
+| `page move` | PASS | reparented child; `page ancestors` reflected the new parent |
+| `page restore --version 1` | PASS | body/title reverted to v1 |
+| `page comment add` / `page comment delete` | PASS | comment created then deleted (dangerous) |
+| `page attachment upload` / `page attachment delete` | PASS | file uploaded then deleted (dangerous) |
+| `page label add` / `page label remove` | PASS | `smoke,cc-test` added; `cc-test` removed; list confirmed |
+| `page delete --purge` (×3 cleanup) | PASS | dangerous two-step; all test pages permanently removed |
+| `space create` | PASS (E_FORBIDDEN) | normal PAT lacks space-admin; server-side 403 → `E_FORBIDDEN` as designed. `space update`/`space delete` not exercised (require an admin-owned throwaway space) |
+
+### Bug found and fixed during this smoke
+
+- **`page delete` was fully blocked on this DC.** The dry-run preview computed a
+  descendant count via `/content/{id}/descendant/page`, which this Confluence
+  version does not implement (HTTP **501** "Page children is currently only
+  supported for direct children"). An informational count must never block a
+  delete. FIXED: the count is now best-effort — it falls back to the
+  direct-children count (scope `direct_children_only`) and, if that also fails,
+  reports `-1`/`unknown`; the delete proceeds regardless. Re-verified live: the
+  three cleanup purges succeeded after the fix.
+- **`page descendants` returns `E_SERVER` (501) on this DC** — the recursive
+  endpoint is genuinely absent on this server version. Left as an honest failure
+  (the server message is passed through); `page children` covers direct children.

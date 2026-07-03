@@ -530,15 +530,16 @@ func runPageDelete(_ *cobra.Command, args []string) error {
 		return err
 	}
 	// Preview needs the page title + descendant count before the gate decision.
-	c, descendants, gerr := deletePreviewData(client, id)
+	c, descendants, scope, gerr := deletePreviewData(client, id)
 	if gerr != nil {
 		return emitAPIError(gerr)
 	}
 	detail := map[string]any{
-		"id":          id,
-		"title":       c.Title,
-		"descendants": descendants,
-		"purge":       pageDeletePurge,
+		"id":               id,
+		"title":            c.Title,
+		"descendants":      descendants,
+		"descendant_scope": scope,
+		"purge":            pageDeletePurge,
 	}
 	if pageDeletePurge {
 		detail["irreversible"] = true
@@ -553,18 +554,25 @@ func runPageDelete(_ *cobra.Command, args []string) error {
 	return nil
 }
 
-// deletePreviewData fetches the target title and its descendant count for the
-// delete preview. On dangerous-gate rejection this still runs (cheap reads).
-func deletePreviewData(client *api.Client, id string) (*api.Content, int, error) {
+// deletePreviewData fetches the target title and a child/descendant count for
+// the delete preview. The count is BEST EFFORT: it must never block the delete.
+// Some Confluence DC versions do not implement the recursive
+// /content/{id}/descendant/page endpoint (HTTP 501), so we fall back to the
+// direct-children count, and if even that fails we report the count as unknown.
+// The returned scope string tells the caller (and the agent) how to read the
+// number. Only a failure to read the target page itself is a hard error.
+func deletePreviewData(client *api.Client, id string) (*api.Content, int, string, error) {
 	c, err := client.Content.GetContent(id, api.GetContentOptions{})
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
 	}
-	page, err := client.Content.DescendantPages(id, 0, 0)
-	if err != nil {
-		return nil, 0, err
+	if page, err := client.Content.DescendantPages(id, 0, 0); err == nil {
+		return c, page.Size, "all_descendants", nil
 	}
-	return c, page.Size, nil
+	if page, err := client.Content.ChildPages(id, 0, 0); err == nil {
+		return c, page.Size, "direct_children_only", nil
+	}
+	return c, -1, "unknown", nil
 }
 
 func runPageMove(_ *cobra.Command, args []string) error {

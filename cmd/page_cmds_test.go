@@ -724,3 +724,36 @@ func TestPageLabelList_HappyPath(t *testing.T) {
 		t.Fatalf("labels=%+v", data.Labels)
 	}
 }
+
+// TestPageDelete_DescendantEndpointUnsupported verifies the delete preview
+// degrades gracefully when the recursive /descendant/page endpoint is not
+// implemented (HTTP 501 on some Confluence DC versions): it falls back to the
+// direct-children count and the delete still proceeds, rather than the whole
+// command hard-failing on an informational count.
+func TestPageDelete_DescendantEndpointUnsupported(t *testing.T) {
+	pageServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/descendant/page"):
+			w.WriteHeader(http.StatusNotImplemented) // 501, like the real DC
+		case strings.HasSuffix(r.URL.Path, "/child/page"):
+			_, _ = w.Write([]byte(`{"results":[{"id":"x"}],"start":0,"limit":25,"size":1,"_links":{}}`))
+		case r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusNoContent)
+		case strings.HasPrefix(r.URL.Path, "/rest/api/content/"):
+			_, _ = w.Write([]byte(`{"id":"12345","type":"page","title":"Doomed"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	// Preview must succeed (fallback to direct children), not 501.
+	stdout, _, err := runRoot(t, "--dangerous", "--dry-run", "page", "delete", "12345")
+	if err != nil {
+		t.Fatalf("dry-run should not hard-fail on 501: %v", err)
+	}
+	if !strings.Contains(stdout, "direct_children_only") {
+		t.Fatalf("preview should report fallback scope:\n%s", stdout)
+	}
+	// And the delete itself proceeds.
+	token := dryRunConfirmToken(t, "--dangerous", "page", "delete", "12345")
+	runRootOK(t, "--dangerous", "--confirm", token, "page", "delete", "12345")
+}
