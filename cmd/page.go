@@ -673,18 +673,27 @@ func runPageHistory(_ *cobra.Command, args []string) error {
 	if h.LastUpdated != nil {
 		result["versions"] = []map[string]any{versionEntry(h.LastUpdated)}
 	}
+	untrusted := []string{}
 	if h.CreatedBy != nil {
 		result["created_by"] = h.CreatedBy.DisplayName
 		result["created_date"] = h.CreatedDate
+		untrusted = append(untrusted, "created_by")
 	}
+	// created_by (author display name) is attacker-influenced external content;
+	// per-version by/message are tagged on each version entry itself.
+	result["_untrusted"] = untrusted
 	output.PrintJSON(result)
 	return nil
 }
 
 func versionEntry(v *api.Version) map[string]any {
-	e := map[string]any{"number": v.Number, "when": v.When, "message": v.Message}
+	// message (version comment) is user-authored; by (display name) is external
+	// — both are untrusted and must be tagged so an agent never treats them as
+	// trusted instructions.
+	e := map[string]any{"number": v.Number, "when": v.When, "message": v.Message, "_untrusted": []string{"message"}}
 	if v.By != nil {
 		e["by"] = v.By.DisplayName
+		e["_untrusted"] = []string{"by", "message"}
 	}
 	return e
 }

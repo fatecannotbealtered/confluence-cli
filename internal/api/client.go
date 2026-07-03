@@ -163,6 +163,7 @@ type Options struct {
 // Client wraps the Confluence Data Center REST API v1.
 type Client struct {
 	baseURL    string // no trailing slash
+	baseHost   string // lowercased scheme://host of baseURL, for redirect host checks
 	authHeader string // "Bearer <PAT>"
 	userAgent  string
 	httpClient *http.Client
@@ -178,6 +179,17 @@ type Client struct {
 	System      *SystemAPI
 }
 
+// originOf returns the lowercased "scheme://host" of a URL, or "" if it cannot
+// be parsed. Used to compare redirect targets against the configured base host
+// so credentials are never re-attached across origins.
+func originOf(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	return strings.ToLower(u.Scheme + "://" + u.Host)
+}
+
 // NewClient creates a Confluence DC client with PAT Bearer authentication.
 func NewClient(baseURL, token string, opts Options) *Client {
 	timeout := opts.Timeout
@@ -189,28 +201,37 @@ func NewClient(baseURL, token string, opts Options) *Client {
 		version = "dev"
 	}
 
+	trimmedBase := strings.TrimRight(baseURL, "/")
 	c := &Client{
-		baseURL:    strings.TrimRight(baseURL, "/"),
+		baseURL:    trimmedBase,
+		baseHost:   originOf(trimmedBase),
 		authHeader: "Bearer " + strings.TrimSpace(token),
 		userAgent:  "confluence-cli/" + version,
-		httpClient: &http.Client{
-			Timeout: timeout,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if len(via) >= 10 {
-					return fmt.Errorf("stopped after 10 redirects")
-				}
-				// Go may drop Authorization on redirect; re-apply so Bearer
-				// survives SSO hops.
-				if len(via) > 0 {
+	}
+	c.httpClient = &http.Client{
+		Timeout: timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			if len(via) > 0 {
+				// Go strips Authorization on cross-origin redirects to avoid
+				// leaking credentials. Re-apply the Bearer PAT ONLY when the
+				// redirect target is the same origin as the configured base
+				// host, so an SSO hop within the instance keeps working while
+				// a redirect to a foreign host never receives the PAT.
+				if originOf(req.URL.String()) == c.baseHost {
 					if auth := via[len(via)-1].Header.Get("Authorization"); auth != "" {
 						req.Header.Set("Authorization", auth)
 					}
-					if ua := via[len(via)-1].Header.Get("User-Agent"); ua != "" {
-						req.Header.Set("User-Agent", ua)
-					}
+				} else {
+					req.Header.Del("Authorization")
 				}
-				return nil
-			},
+				if ua := via[len(via)-1].Header.Get("User-Agent"); ua != "" {
+					req.Header.Set("User-Agent", ua)
+				}
+			}
+			return nil
 		},
 	}
 
@@ -406,8 +427,17 @@ func (c *Client) download(rawURL string) (io.ReadCloser, error) {
 	req.Header.Set("User-Agent", c.userAgent)
 
 	// Large attachments can exceed the shared client timeout; stream with no
-	// overall deadline.
-	dl := &http.Client{CheckRedirect: c.httpClient.CheckRedirect}
+	// overall deadline. A redirect off the configured origin is refused on
+	// every hop: the download link is server-supplied (untrusted), so an
+	// initial-URL SSRF check is not enough — a same-host link could still 302
+	// to an internal address. The shared CheckRedirect additionally strips the
+	// PAT from any foreign hop we might otherwise follow.
+	dl := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if originOf(req.URL.String()) != c.baseHost {
+			return fmt.Errorf("refusing to follow download redirect off %s", c.baseURL)
+		}
+		return c.httpClient.CheckRedirect(req, via)
+	}}
 	resp, err := dl.Do(req)
 	if err != nil {
 		return nil, mapNetworkError(err)

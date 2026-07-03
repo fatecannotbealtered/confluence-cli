@@ -104,10 +104,11 @@ func Consume(operation string, detail map[string]any, token string, now time.Tim
 	if err := Validate(operation, detail, token, now); err != nil {
 		return err
 	}
-	if isConsumed(token, now) {
+	// Atomic claim: the check-and-mark is a single O_CREATE|O_EXCL create, so
+	// two concurrent processes replaying the same token cannot both proceed.
+	if !claimConsumed(token, expiryUnix(token), now) {
 		return fmt.Errorf("confirm token already used; the operation may have completed — re-run --dry-run to see current state")
 	}
-	markConsumed(token, expiryUnix(token), now)
 	return nil
 }
 

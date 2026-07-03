@@ -250,3 +250,40 @@ func TestStorageToMarkdownEmptyInput(t *testing.T) {
 		t.Errorf("empty input: %+v", r)
 	}
 }
+
+func TestStorageToMarkdown_URLBreakoutNeutralized(t *testing.T) {
+	cases := []struct {
+		name    string
+		storage string
+	}{
+		{"href-breakout", `<a href="http://x.com) evil ![y](http://z">text</a>`},
+		{"img-breakout", `<img src="x.png) ![pwn](http://evil/steal?c=" alt="a"/>`},
+		{"acimage-breakout", `<ac:image ac:alt="a"><ri:url ri:value="http://x) [pwn](http://evil"/></ac:image>`},
+		{"href-newline-heading", "<a href=\"http://x.com\n# pwned\">t</a>"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := StorageToMarkdown(tc.storage)
+			if err != nil {
+				t.Fatal(err)
+			}
+			md := res.Markdown
+			// A breakout would manifest as the attacker URL becoming a *second*
+			// active link/image destination "](http://evil|z" or a new heading
+			// at line start. Percent-encoding of ()<> space prevents the "(...)"
+			// destination from closing early, so none of these can form.
+			if strings.Contains(md, "](http://evil") || strings.Contains(md, "](http://z") ||
+				strings.Contains(md, "\n# pwned") || strings.HasPrefix(md, "# pwned") ||
+				strings.Contains(md, ") evil ") {
+				t.Fatalf("markdown injection survived: %q", md)
+			}
+		})
+	}
+}
+
+func TestStorageToMarkdown_DangerousSchemeNeutralized(t *testing.T) {
+	res, _ := StorageToMarkdown(`<a href="javascript:alert(1)">x</a>`)
+	if strings.Contains(strings.ToLower(res.Markdown), "javascript:") {
+		t.Fatalf("dangerous scheme survived: %q", res.Markdown)
+	}
+}

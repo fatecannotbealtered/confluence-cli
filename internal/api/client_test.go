@@ -352,3 +352,82 @@ func TestDownload_RefusesForeignHost(t *testing.T) {
 		t.Errorf("err = %v, want SSRF refusal", err)
 	}
 }
+
+// TestRedirect_StripsAuthOnForeignHost verifies the CheckRedirect fix: the
+// Bearer PAT must NOT be re-attached when a request is redirected to a host
+// other than the configured base host (credential-leak guard).
+func TestRedirect_StripsAuthOnForeignHost(t *testing.T) {
+	var gotAuth string
+	var gotAuthSet int32
+	foreign := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.StoreInt32(&gotAuthSet, 1)
+		gotAuth = r.Header.Get("Authorization")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer foreign.Close()
+
+	base := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, foreign.URL, http.StatusFound)
+	}))
+	defer base.Close()
+
+	c := newTestClient(base.URL)
+	// Any GET goes through the shared client + CheckRedirect.
+	_, _ = c.get("/rest/api/space")
+	if atomic.LoadInt32(&gotAuthSet) == 0 {
+		t.Fatal("foreign host was never reached")
+	}
+	if gotAuth != "" {
+		t.Fatalf("PAT leaked to foreign host via redirect: %q", gotAuth)
+	}
+}
+
+// TestRedirect_KeepsAuthOnSameHost verifies a same-origin redirect (SSO hop)
+// still carries the Bearer PAT.
+func TestRedirect_KeepsAuthOnSameHost(t *testing.T) {
+	var lastAuth string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/hop" {
+			lastAuth = r.Header.Get("Authorization")
+			_, _ = w.Write([]byte(`{}`))
+			return
+		}
+		http.Redirect(w, r, "/hop", http.StatusFound)
+	}))
+	defer ts.Close()
+
+	c := newTestClient(ts.URL)
+	if _, err := c.get("/rest/api/space"); err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if lastAuth != "Bearer test-pat-token" {
+		t.Fatalf("same-host redirect dropped PAT: %q", lastAuth)
+	}
+}
+
+// TestDownload_RefusesForeignRedirect verifies the download SSRF guard rejects
+// a redirect that leaves the configured origin, even when the initial URL is
+// same-host (server-supplied download links are untrusted).
+func TestDownload_RefusesForeignRedirect(t *testing.T) {
+	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("SECRET-INTERNAL"))
+	}))
+	defer internal.Close()
+
+	base := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, internal.URL, http.StatusFound)
+	}))
+	defer base.Close()
+
+	c := newTestClient(base.URL)
+	rc, err := c.download("/download/attachments/1/x")
+	if rc != nil {
+		_ = rc.Close()
+	}
+	if err == nil {
+		t.Fatal("expected download to refuse the off-origin redirect (SSRF)")
+	}
+	if !strings.Contains(err.Error(), "refusing") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

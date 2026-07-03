@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -154,6 +155,44 @@ func TestMarkdownToStorageNoPanicOnWeirdInput(t *testing.T) {
 	for _, in := range inputs {
 		if _, err := MarkdownToStorage(in); err != nil {
 			t.Errorf("MarkdownToStorage(%q) error: %v", in, err)
+		}
+	}
+}
+
+var hrefRe = regexp.MustCompile(`href="([^"]*)"`)
+
+func TestMarkdownToStorage_NeutralizesDangerousSchemes(t *testing.T) {
+	cases := []struct {
+		name string
+		md   string
+	}{
+		{"link-javascript", "[click](javascript:alert(document.cookie))"},
+		{"link-JavaScript-mixedcase", "[x](JavaScript:alert(1))"},
+		{"link-data", "[x](data:text/html,<script>alert(1)</script>)"},
+		{"link-vbscript", "[x](vbscript:msgbox(1))"},
+		{"autolink-javascript", "<javascript:alert(1)>"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := MarkdownToStorage(tc.md)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Only the href attribute matters: a dangerous scheme surviving as
+			// visible link text is inert, but inside href="..." it is active.
+			for _, m := range hrefRe.FindAllStringSubmatch(out, -1) {
+				h := strings.ToLower(m[1])
+				if strings.HasPrefix(h, "javascript:") || strings.HasPrefix(h, "data:") || strings.HasPrefix(h, "vbscript:") {
+					t.Fatalf("dangerous scheme survived into href: %s", out)
+				}
+			}
+		})
+	}
+	// Legitimate schemes must be preserved.
+	for _, ok := range []string{"[a](https://x.com/p)", "[a](http://x.com)", "[a](mailto:x@y.com)", "[a](/relative/path)"} {
+		out, _ := MarkdownToStorage(ok)
+		if strings.Contains(out, `href="#"`) {
+			t.Fatalf("legitimate href was neutralized: %s -> %s", ok, out)
 		}
 	}
 }

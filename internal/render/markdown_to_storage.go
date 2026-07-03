@@ -199,7 +199,7 @@ func (w *storageWriter) inline(n ast.Node) {
 		w.inlines(n)
 		w.b.WriteString("</del>")
 	case *ast.Link:
-		w.b.WriteString(`<a href="` + html.EscapeString(string(n.Destination)) + `">`)
+		w.b.WriteString(`<a href="` + html.EscapeString(safeHref(string(n.Destination))) + `">`)
 		w.inlines(n)
 		w.b.WriteString("</a>")
 	case *ast.AutoLink:
@@ -208,7 +208,7 @@ func (w *storageWriter) inline(n ast.Node) {
 		if n.AutoLinkType == ast.AutoLinkEmail && !strings.HasPrefix(href, "mailto:") {
 			href = "mailto:" + href
 		}
-		w.b.WriteString(`<a href="` + html.EscapeString(href) + `">` + html.EscapeString(url) + "</a>")
+		w.b.WriteString(`<a href="` + html.EscapeString(safeHref(href)) + `">` + html.EscapeString(url) + "</a>")
 	case *ast.Image:
 		w.image(n)
 	case *ast.RawHTML:
@@ -224,6 +224,28 @@ func (w *storageWriter) inline(n ast.Node) {
 	default:
 		w.inlines(n)
 	}
+}
+
+// safeHref returns a hyperlink destination safe to embed in a storage-format
+// <a href>. An explicit URL scheme is allowed only when it is http, https, or
+// mailto; any other scheme (javascript:, data:, vbscript:, file:, ...) is
+// neutralized to "#" so a dangerous scheme can never become an active link.
+// Relative paths and scheme-relative ("//host") URLs are preserved as-is.
+func safeHref(raw string) string {
+	s := strings.TrimSpace(raw)
+	if i := strings.IndexByte(s, ':'); i >= 0 {
+		scheme := s[:i]
+		// A '/', '?' or '#' before the first ':' means it is not a scheme but a
+		// relative path that merely contains a colon (e.g. "a/b:c").
+		if !strings.ContainsAny(scheme, "/?#") {
+			switch strings.ToLower(scheme) {
+			case "http", "https", "mailto":
+			default:
+				return "#"
+			}
+		}
+	}
+	return s
 }
 
 func (w *storageWriter) image(n *ast.Image) {

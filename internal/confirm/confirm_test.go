@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -180,23 +182,27 @@ func TestConsume_PersistsAcrossStore(t *testing.T) {
 		t.Fatalf("Consume(): %v", err)
 	}
 
-	// The consumed store must be on disk,
-	// so a new process would also reject the replay.
-	storePath := filepath.Join(tmpDir, ".confluence-cli", "confirm-consumed.json")
-	data, err := os.ReadFile(storePath)
+	// The consumed store must be on disk as a directory of per-token marker
+	// files, so a new process would also reject the replay.
+	storeDir := filepath.Join(tmpDir, ".confluence-cli", "confirm-consumed")
+	entries, err := os.ReadDir(storeDir)
 	if err != nil {
 		t.Fatalf("consumed store not written: %v", err)
 	}
-	var stored map[string]int64
-	if err := json.Unmarshal(data, &stored); err != nil {
-		t.Fatalf("consumed store not valid JSON: %v", err)
+	if len(entries) != 1 {
+		t.Fatalf("consumed store entries = %d, want 1", len(entries))
 	}
-	if len(stored) != 1 {
-		t.Errorf("consumed store entries = %d, want 1", len(stored))
+	// The marker name is the fingerprint and its content is the expiry — the
+	// raw token must appear in neither.
+	if strings.Contains(entries[0].Name(), token) {
+		t.Error("marker name must be a fingerprint, not the raw token")
 	}
-	// Fingerprints only — the raw token must not appear in the store.
+	data, err := os.ReadFile(filepath.Join(storeDir, entries[0].Name()))
+	if err != nil {
+		t.Fatalf("read marker: %v", err)
+	}
 	if strings.Contains(string(data), token) {
-		t.Error("consumed store must hold fingerprints, not raw tokens")
+		t.Error("consumed store must hold expiry, not raw tokens")
 	}
 }
 
@@ -294,5 +300,34 @@ func TestIssue_NilDetail(t *testing.T) {
 	// nil and empty map are equivalent payloads.
 	if err := Validate("noop", map[string]any{}, token, time.Now().UTC()); err != nil {
 		t.Errorf("nil and empty detail should produce the same digest: %v", err)
+	}
+}
+
+// TestClaimConsumed_AtomicSingleUse verifies exactly one concurrent claimant of
+// the same token wins — the single-use guarantee holds under a race, not just a
+// process-local mutex.
+func TestClaimConsumed_AtomicSingleUse(t *testing.T) {
+	overrideHome(t)
+
+	now := time.Unix(1_800_000_000, 0)
+	exp := now.Add(time.Hour).Unix()
+	const n = 32
+	var wins int64
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			if claimConsumed("ct_race_token", exp, now) {
+				atomic.AddInt64(&wins, 1)
+			}
+		}()
+	}
+	close(start)
+	wg.Wait()
+	if wins != 1 {
+		t.Fatalf("expected exactly 1 winner, got %d", wins)
 	}
 }

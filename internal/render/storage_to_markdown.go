@@ -335,11 +335,11 @@ func (c *converter) inline(b *strings.Builder, n *xhtml.Node) {
 		if text == "" {
 			text = attrVal(n, "href")
 		}
-		b.WriteString("[" + text + "](" + attrVal(n, "href") + ")")
+		b.WriteString("[" + text + "](" + mdURL(attrVal(n, "href")) + ")")
 	case "br":
 		b.WriteString("  \n")
 	case "img":
-		b.WriteString("![" + escapeMarkdown(attrVal(n, "alt")) + "](" + attrVal(n, "src") + ")")
+		b.WriteString("![" + escapeMarkdown(attrVal(n, "alt")) + "](" + mdURL(attrVal(n, "src")) + ")")
 	case "ac:image":
 		b.WriteString(c.acImage(n))
 	case "ac:structured-macro", "ac:macro":
@@ -368,9 +368,9 @@ func (c *converter) acImage(n *xhtml.Node) string {
 		}
 		switch ch.Data {
 		case "ri:url":
-			return "![" + alt + "](" + attrVal(ch, "ri:value") + ")"
+			return "![" + alt + "](" + mdURL(attrVal(ch, "ri:value")) + ")"
 		case "ri:attachment":
-			return "![" + alt + "](" + attrVal(ch, "ri:filename") + ")"
+			return "![" + alt + "](" + mdURL(attrVal(ch, "ri:filename")) + ")"
 		}
 	}
 	return ""
@@ -422,6 +422,41 @@ var mdEscaper = strings.NewReplacer(
 
 func escapeMarkdown(s string) string {
 	return mdEscaper.Replace(s)
+}
+
+// mdURL sanitizes an untrusted URL (server-supplied href/src/ri:value) for safe
+// embedding inside a Markdown link/image destination "(...)". Two defenses:
+//  1. A dangerous URL scheme (javascript:, data:, vbscript:, file:, ...) is
+//     neutralized to "#" so the emitted Markdown never yields an active
+//     dangerous link.
+//  2. Characters that would break out of the "(...)" destination — whitespace,
+//     parentheses, angle brackets, quotes, backticks and control bytes — are
+//     percent-encoded, so a crafted URL cannot inject arbitrary Markdown
+//     (extra links/images/headings) into the converted output.
+func mdURL(raw string) string {
+	s := strings.TrimSpace(raw)
+	if i := strings.IndexByte(s, ':'); i >= 0 {
+		scheme := s[:i]
+		if !strings.ContainsAny(scheme, "/?#") {
+			switch strings.ToLower(scheme) {
+			case "http", "https", "mailto", "ftp":
+			default:
+				return "#"
+			}
+		}
+	}
+	var b strings.Builder
+	for _, r := range s {
+		switch {
+		case r <= 0x20, r == 0x7f: // control chars + space
+			fmt.Fprintf(&b, "%%%02X", r)
+		case r == '(' || r == ')' || r == '<' || r == '>' || r == '"' || r == '`' || r == '\\':
+			fmt.Fprintf(&b, "%%%02X", r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // collapseSpace collapses whitespace runs to single spaces, keeping a

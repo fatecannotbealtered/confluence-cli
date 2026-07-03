@@ -367,14 +367,32 @@ func TestPageHistory_Versions(t *testing.T) {
 	})
 	stdout, _ := runRootOK(t, "page", "history", "12345")
 	var data struct {
-		Versions []struct {
-			Number int `json:"number"`
+		Untrusted []string `json:"_untrusted"`
+		Versions  []struct {
+			Number    int      `json:"number"`
+			Untrusted []string `json:"_untrusted"`
 		} `json:"versions"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Versions) != 1 || data.Versions[0].Number != 5 {
 		t.Fatalf("versions=%+v", data.Versions)
 	}
+	// External author/comment content must be tagged _untrusted.
+	if !contains(data.Untrusted, "created_by") {
+		t.Errorf("top-level _untrusted missing created_by: %v", data.Untrusted)
+	}
+	if !contains(data.Versions[0].Untrusted, "by") || !contains(data.Versions[0].Untrusted, "message") {
+		t.Errorf("version _untrusted missing by/message: %v", data.Versions[0].Untrusted)
+	}
+}
+
+func contains(xs []string, want string) bool {
+	for _, x := range xs {
+		if x == want {
+			return true
+		}
+	}
+	return false
 }
 
 func TestPageRestore_HappyPath(t *testing.T) {
