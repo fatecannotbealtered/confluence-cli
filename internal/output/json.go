@@ -37,6 +37,14 @@ var CommandStartTime time.Time
 // nothing to report, in which case meta.notices is omitted.
 var UpdateNoticesProvider func() []any
 
+// CommandNotices holds transient, per-command advisory notices (e.g. an --all
+// truncation warning) appended to the next envelope's meta.notices. The CLI
+// resets it per invocation.
+var CommandNotices []any
+
+// AddNotice appends a command-level notice to meta.notices for the current run.
+func AddNotice(notice any) { CommandNotices = append(CommandNotices, notice) }
+
 type Envelope struct {
 	OK            bool           `json:"ok"`
 	SchemaVersion string         `json:"schema_version"`
@@ -76,6 +84,9 @@ func buildMeta() *Meta {
 		if notices := UpdateNoticesProvider(); len(notices) > 0 {
 			meta.Notices = notices
 		}
+	}
+	if len(CommandNotices) > 0 {
+		meta.Notices = append(meta.Notices, CommandNotices...)
 	}
 	return meta
 }
