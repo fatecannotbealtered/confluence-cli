@@ -87,6 +87,7 @@ func resetCmdState(t *testing.T) {
 	dryRun = false
 	confirmToken = ""
 	dangerousMode = false
+	forceMode = false
 	loginURLFlag = ""
 	loginTokenFlag = ""
 	spaceListType = ""
@@ -173,6 +174,10 @@ func resetCmdState(t *testing.T) {
 	resetFlagValue(rootCmd.PersistentFlags(), "dry-run", "false")
 	resetFlagValue(rootCmd.PersistentFlags(), "confirm", "")
 	resetFlagValue(rootCmd.PersistentFlags(), "dangerous", "false")
+	resetFlagValue(rootCmd.PersistentFlags(), "force", "false")
+	resetFlagValue(updateCmd.Flags(), "check", "false")
+	resetFlagValue(updateCmd.Flags(), "target-version", "")
+	resetFlagValue(updateCmd.Flags(), "version", "")
 	resetFlagValue(authLoginCmd.Flags(), "url", "")
 	resetFlagValue(authLoginCmd.Flags(), "token", "")
 	resetFlagValue(changelogCmd.Flags(), "since", "")

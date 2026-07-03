@@ -231,6 +231,7 @@ func commandMetaCatalog() map[string]commandMeta {
 		"confluence-cli context":   {schema: "context", examples: []string{"confluence-cli context --compact"}},
 		"confluence-cli doctor":    {schema: "doctor", examples: []string{"confluence-cli doctor --compact"}},
 		"confluence-cli changelog": {schema: "changelog", examples: []string{"confluence-cli changelog --since 0.1.0 --compact"}},
+		"confluence-cli update":    {schema: "update_result", examples: []string{"confluence-cli update --check --compact", "confluence-cli update --dry-run --compact"}},
 
 		// Space.
 		"confluence-cli space list":   {schema: "space_list", examples: []string{"confluence-cli space list --type global --limit 25 --compact"}},
@@ -296,10 +297,11 @@ func referenceSchemas() map[string]referenceDataSchema {
 		"auth_status":   {Shape: "object", Fields: []string{"status", "url", "token_present", "token_sha256", "storage", "username", "display_name", "error"}},
 
 		// Self-description documents (cmd/reference.go, context.go, doctor.go, changelog.go).
-		"reference": {Shape: "object", Fields: []string{"tool", "version", "schema_version", "risk_tier", "release_readiness", "root", "commands", "exit_codes", "error_codes", "schemas"}},
-		"context":   {Shape: "object", Fields: []string{"tool", "version", "runtime", "config", "credentials", "account", "errors", "env"}},
-		"doctor":    {Shape: "object", Fields: []string{"checks", "url", "username", "display_name", "server_version", "latency_ms"}},
-		"changelog": {Shape: "object", Fields: []string{"current_version", "since", "entries"}},
+		"reference":     {Shape: "object", Fields: []string{"tool", "version", "schema_version", "risk_tier", "release_readiness", "root", "commands", "exit_codes", "error_codes", "schemas"}},
+		"context":       {Shape: "object", Fields: []string{"tool", "version", "runtime", "config", "credentials", "account", "errors", "env"}},
+		"doctor":        {Shape: "object", Fields: []string{"checks", "url", "username", "display_name", "server_version", "latency_ms"}},
+		"changelog":     {Shape: "object", Fields: []string{"current_version", "since", "entries"}},
+		"update_result": {Shape: "object", Fields: []string{"status", "current_version", "target_version", "requested_version", "previous_version", "knowledge_refresh", "update_available", "installed", "check_only", "dry_run", "install_method", "command", "asset", "path", "checksum_verified", "signature_status", "signature_verified", "skill_sync_command", "skill_sync_status", "notices"}},
 
 		// Space (cmd/space.go).
 		"space_list":   {Shape: "object", Fields: []string{"spaces", "start_at", "limit", "size", "has_more", "next_start_at"}},

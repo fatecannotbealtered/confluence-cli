@@ -27,6 +27,13 @@ const (
 	ExitRetryable       = 7
 	ExitTimeout         = 8
 	ExitInterrupted     = 130
+
+	// Aliases used by the self-update command's error taxonomy so the update
+	// classifier can name the failure mode (network/forbidden/io) while mapping
+	// onto the shared contract exit codes.
+	ExitNetwork   = ExitRetryable
+	ExitForbidden = ExitAuth
+	ExitIO        = ExitGeneric
 )
 
 // ErrSilent indicates the error has been printed; cobra should not print again.
@@ -51,6 +58,7 @@ var (
 	dryRun        bool
 	confirmToken  string
 	dangerousMode bool
+	forceMode     bool
 )
 
 // jsonMode reports whether command success output should use the machine-readable branch.
@@ -114,6 +122,13 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be done without executing")
 	rootCmd.PersistentFlags().StringVar(&confirmToken, "confirm", "", "Confirmation token returned by --dry-run for write commands")
 	rootCmd.PersistentFlags().BoolVar(&dangerousMode, "dangerous", false, "Required for write-dangerous commands in both the dry-run and confirm steps")
+	rootCmd.PersistentFlags().BoolVar(&forceMode, "force", false, "Force the operation, bypassing the package-manager gate on update")
+
+	// Surface the cached update-available hint at the foot of --help output.
+	installUpdateNoticeHelp(rootCmd)
+	// Attach the cached update notice to every command's meta.notices, read-only
+	// from the local cache (no network). Omitted when the cache is empty/expired.
+	output.UpdateNoticesProvider = func() []any { return noticesAsAny(readCachedUpdateNotices()) }
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		lastExit = 0
