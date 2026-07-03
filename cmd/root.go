@@ -119,6 +119,7 @@ func init() {
 		lastExit = 0
 		cmdStartTime = time.Now()
 		output.CommandStartTime = cmdStartTime
+		output.CommandNotices = nil
 		execCmd = cmd
 		return configureOutputMode(cmd)
 	}

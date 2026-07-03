@@ -231,6 +231,27 @@ func commandMetaCatalog() map[string]commandMeta {
 		"confluence-cli context":   {schema: "context", examples: []string{"confluence-cli context --compact"}},
 		"confluence-cli doctor":    {schema: "doctor", examples: []string{"confluence-cli doctor --compact"}},
 		"confluence-cli changelog": {schema: "changelog", examples: []string{"confluence-cli changelog --since 0.1.0 --compact"}},
+
+		// Space.
+		"confluence-cli space list":   {schema: "space_list", examples: []string{"confluence-cli space list --type global --limit 25 --compact"}},
+		"confluence-cli space get":    {schema: "space", examples: []string{"confluence-cli space get ENG --compact"}},
+		"confluence-cli space create": {schema: "space", examples: []string{"confluence-cli space create --key ENG --name Engineering --dry-run"}},
+		"confluence-cli space update": {schema: "space", examples: []string{"confluence-cli space update ENG --name 'Engineering Team' --dry-run"}},
+		"confluence-cli space delete": {schema: "space_delete", examples: []string{"confluence-cli space delete ENG --dangerous --dry-run"}},
+
+		// Search.
+		"confluence-cli search": {schema: "search_result", examples: []string{
+			"confluence-cli search --type page --space ENG --title roadmap --sort modified --desc --compact",
+			`confluence-cli search 'label = "adr"' --space ENG --modified-since -30d --compact`,
+		}},
+
+		// User.
+		"confluence-cli user current": {schema: "user", examples: []string{"confluence-cli user current --compact"}},
+		"confluence-cli user get":     {schema: "user", examples: []string{"confluence-cli user get jdoe --compact"}},
+		"confluence-cli user search":  {schema: "user_list", examples: []string{"confluence-cli user search 'John' --limit 10 --compact"}},
+
+		// Task.
+		"confluence-cli task get": {schema: "long_task", examples: []string{"confluence-cli task get 12345 --compact"}},
 	}
 }
 
@@ -249,6 +270,21 @@ func referenceSchemas() map[string]referenceDataSchema {
 		"context":   {Shape: "object", Fields: []string{"tool", "version", "runtime", "config", "credentials", "account", "errors", "env"}},
 		"doctor":    {Shape: "object", Fields: []string{"checks", "url", "username", "display_name", "server_version", "latency_ms"}},
 		"changelog": {Shape: "object", Fields: []string{"current_version", "since", "entries"}},
+
+		// Space (cmd/space.go).
+		"space_list":   {Shape: "object", Fields: []string{"spaces", "start_at", "limit", "size", "has_more", "next_start_at"}},
+		"space":        {Shape: "object", Fields: []string{"key", "name", "type", "status", "description", "_untrusted"}, UntrustedFields: []string{"name", "description"}},
+		"space_delete": {Shape: "object", Fields: []string{"task_id", "status", "status_link", "successful", "percentage_complete"}},
+
+		// Search (cmd/search.go). Each result carries external title/excerpt.
+		"search_result": {Shape: "object", Fields: []string{"results", "start_at", "size", "total_size", "has_more", "next_start_at"}, UntrustedFields: []string{"title", "excerpt"}},
+
+		// User (cmd/user.go).
+		"user":      {Shape: "object", Fields: []string{"username", "display_name", "user_key", "type", "_untrusted"}, UntrustedFields: []string{"display_name"}},
+		"user_list": {Shape: "object", Fields: []string{"users", "start_at", "size", "total_size", "has_more", "next_start_at"}, UntrustedFields: []string{"display_name"}},
+
+		// Task (cmd/task.go).
+		"long_task": {Shape: "object", Fields: []string{"id", "name", "percentage_complete", "successful", "finished", "messages"}},
 	}
 }
 

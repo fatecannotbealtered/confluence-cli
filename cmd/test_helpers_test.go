@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fatecannotbealtered/confluence-cli/internal/output"
 	"github.com/spf13/pflag"
@@ -88,6 +89,41 @@ func resetCmdState(t *testing.T) {
 	dangerousMode = false
 	loginURLFlag = ""
 	loginTokenFlag = ""
+	spaceListType = ""
+	spaceListLimit = 0
+	spaceListStart = 0
+	spaceCreateKey = ""
+	spaceCreateName = ""
+	spaceCreateDesc = ""
+	spaceUpdateName = ""
+	spaceUpdateDesc = ""
+	spaceDeleteWait = false
+	spaceDeleteTO = 60
+	searchSpaces = nil
+	searchType = ""
+	searchTitle = ""
+	searchText = ""
+	searchLabels = nil
+	searchCreator = ""
+	searchContributor = ""
+	searchAncestor = ""
+	searchCreatedSince = ""
+	searchCreatedUntil = ""
+	searchModifiedSince = ""
+	searchModifiedUntil = ""
+	searchSort = ""
+	searchDesc = false
+	searchAsc = false
+	searchCountOnly = false
+	searchAll = false
+	searchLimit = 0
+	searchStart = 0
+	userSearchLimit = 0
+	userSearchStart = 0
+	clockNow = time.Now
+	clockSleep = time.Sleep
+	pollInterval = 2 * time.Second
+	output.CommandNotices = nil
 	output.CompactJSON = false
 	output.ErrorJSON = false
 	output.EnvelopeJSON = true
