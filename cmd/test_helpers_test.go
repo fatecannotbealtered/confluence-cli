@@ -154,7 +154,6 @@ func resetCmdState(t *testing.T) {
 	attachUploadFiles = nil
 	attachUploadOver = false
 	attachDownloadOut = ""
-	attachDownloadForm = ""
 	labelListLimit = 0
 	labelListStart = 0
 	labelAddNames = nil

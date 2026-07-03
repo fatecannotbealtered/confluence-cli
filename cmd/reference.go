@@ -317,7 +317,7 @@ func referenceSchemas() map[string]referenceDataSchema {
 		"long_task": {Shape: "object", Fields: []string{"id", "name", "percentage_complete", "successful", "finished", "messages"}},
 
 		// Page core (cmd/page.go). Title and body are external content.
-		"page":           {Shape: "object", Fields: []string{"id", "title", "space_key", "status", "type", "version", "url", "body", "body_format", "meta", "parent_id", "_untrusted"}, UntrustedFields: []string{"title", "body"}},
+		"page":           {Shape: "object", Fields: []string{"id", "title", "space_key", "status", "type", "version", "url", "body", "body_format", "meta", "unsupported_macros", "parent_id", "_untrusted"}, UntrustedFields: []string{"title", "body"}},
 		"page_list":      {Shape: "object", Fields: []string{"pages", "start_at", "limit", "size", "total_size", "has_more", "next_start_at"}, UntrustedFields: []string{"title"}},
 		"page_delete":    {Shape: "object", Fields: []string{"id", "status", "purged"}},
 		"page_ancestors": {Shape: "object", Fields: []string{"ancestors"}, UntrustedFields: []string{"title"}},

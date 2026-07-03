@@ -342,7 +342,7 @@ func attachBody(result map[string]any, c *api.Content) error {
 		result["body_format"] = "markdown"
 		result["meta"] = map[string]any{"fidelity": res.Fidelity}
 		if len(res.UnsupportedMacros) > 0 {
-			result["data.unsupported_macros"] = res.UnsupportedMacros
+			result["unsupported_macros"] = res.UnsupportedMacros
 		}
 	}
 	return nil
