@@ -74,3 +74,39 @@ verified `E_NOT_FOUND` afterwards). All writes used the `--dry-run` →
 - **`page descendants` returns `E_SERVER` (501) on this DC** — the recursive
   endpoint is genuinely absent on this server version. Left as an honest failure
   (the server message is passed through); `page children` covers direct children.
+
+## 2026-07-03 — full 40/40 leaf coverage (live)
+
+Every leaf command was exercised against the production DC. Writes were scoped
+to the caller's personal space and purged; auth login/logout ran in an isolated
+`HOME` so the real config was never touched. Legend: **full** = real
+execution + read-back; **path** = command path + server response/error mapping
+exercised (full mutation not possible with a non-admin PAT / no published
+release).
+
+| Leaf | Mode | Result |
+|---|---|---|
+| auth login / logout / status | full | login validates live, saves, status `valid`→`not_configured` after logout |
+| context / doctor / reference / changelog | full | all `ok` (doctor 1 warn on systemInfo 404) |
+| page get / list / children / ancestors / history | full | all `ok` |
+| page descendants | path | `E_SERVER` 501 — endpoint absent on this DC version |
+| page create / update / move / restore | full | version bump + read-back confirmed |
+| page delete (+`--purge`) | full | dangerous two-step; pages permanently removed |
+| page comment list / get / add / delete | full | add→list→get→delete round trip |
+| page attachment list / upload / download / delete | full | upload→download (content round-tripped)→delete |
+| page label list / add / remove | full | add two→list→remove one→list |
+| space list / get | full | `ok` |
+| space create | path | `E_FORBIDDEN` — non-admin PAT (server 403 as designed) |
+| space update | path | `E_USAGE` on a non-existent key (server rejects) |
+| space delete | path | `--dry-run` preview `ok`; full async delete needs an admin-owned throwaway space |
+| search | full | 50k+ hits, clickable URLs, space_key populated (post-fix) |
+| user current / get / search | full | all `ok` |
+| task get | path | `E_SERVER` on a bogus id; no real long-task available without space delete |
+| update | path | `E_NOT_FOUND` — no GitHub release published yet; discover path exercised |
+
+**Not fully executed (honest caveats):** `space update`/`space delete` real
+mutation, `task get` on a real task, and `update`'s download/verify/replace
+stages require, respectively, space-admin rights, an async task, and a published
+release — none available in this environment. Their command paths, argument
+handling, and error mapping are covered; unit + mock tests cover the success
+branches.
