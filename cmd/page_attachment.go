@@ -219,7 +219,7 @@ func runAttachmentDownload(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return emitAPIError(err)
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	if outputFormat == outputFormatRaw {
 		if _, cerr := io.Copy(os.Stdout, rc); cerr != nil {
