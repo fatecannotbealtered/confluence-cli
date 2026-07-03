@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`search` results now carry `space_key`.** `/rest/api/search` does not expand the content's space by default, so every search result returned an empty `space_key`; the request now sends `expand=content.space`. Verified live against a production Confluence DC.
 
 ### Deprecated
 

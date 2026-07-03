@@ -19,6 +19,9 @@ func (a *SearchAPI) Search(cql string, opts SearchOptions) (*SearchPage, error) 
 	q := url.Values{}
 	q.Set("cql", cql)
 	q.Set("excerpt", "highlight")
+	// /rest/api/search does not expand the content's space by default, so
+	// results would carry an empty space_key. Expand it explicitly.
+	q.Set("expand", "content.space")
 	q.Set("start", strconv.Itoa(opts.Start))
 	q.Set("limit", strconv.Itoa(limit))
 

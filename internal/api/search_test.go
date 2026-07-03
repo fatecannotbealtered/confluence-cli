@@ -20,13 +20,17 @@ func TestSearch_Success(t *testing.T) {
 		if q.Get("excerpt") != "highlight" {
 			t.Errorf("excerpt = %q", q.Get("excerpt"))
 		}
+		// The space must be expanded so results carry a space_key.
+		if q.Get("expand") != "content.space" {
+			t.Errorf("expand = %q, want content.space", q.Get("expand"))
+		}
 		if q.Get("start") != "0" || q.Get("limit") != "10" {
 			t.Errorf("start/limit = %s/%s", q.Get("start"), q.Get("limit"))
 		}
 		_, _ = fmt.Fprint(w, `{
 			"results":[
 				{
-					"content":{"id":"11","type":"page","title":"Roadmap 2026","_links":{"webui":"/display/DEV/Roadmap+2026"}},
+					"content":{"id":"11","type":"page","title":"Roadmap 2026","space":{"key":"DEV"},"_links":{"webui":"/display/DEV/Roadmap+2026"}},
 					"title":"Roadmap 2026",
 					"excerpt":"the @@@hl@@@roadmap@@@endhl@@@ for 2026",
 					"url":"/display/DEV/Roadmap+2026",
@@ -52,6 +56,9 @@ func TestSearch_Success(t *testing.T) {
 	r := page.Results[0]
 	if !strings.Contains(r.Excerpt, "@@@hl@@@") {
 		t.Errorf("excerpt = %q", r.Excerpt)
+	}
+	if r.Content == nil || r.Content.Space == nil || r.Content.Space.Key != "DEV" {
+		t.Errorf("space not expanded: %+v", r.Content)
 	}
 	if r.WebURL != ts.URL+"/display/DEV/Roadmap+2026" {
 		t.Errorf("WebURL = %q, want full clickable URL", r.WebURL)
