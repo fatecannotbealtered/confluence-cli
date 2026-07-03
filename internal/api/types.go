@@ -106,11 +106,13 @@ type CreateContentRequest struct {
 }
 
 // UpdateContentRequest updates content with version.number optimistic lock.
+// Ancestors, when set, reparents the content (used by page move).
 type UpdateContentRequest struct {
-	Type    string       `json:"type"`
-	Title   string       `json:"title"`
-	Version VersionRef   `json:"version"`
-	Body    *RequestBody `json:"body,omitempty"`
+	Type      string       `json:"type"`
+	Title     string       `json:"title"`
+	Version   VersionRef   `json:"version"`
+	Body      *RequestBody `json:"body,omitempty"`
+	Ancestors []ContentRef `json:"ancestors,omitempty"`
 }
 
 // createCommentRequest creates a footer comment (optionally as a reply).

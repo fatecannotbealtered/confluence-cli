@@ -252,6 +252,36 @@ func commandMetaCatalog() map[string]commandMeta {
 
 		// Task.
 		"confluence-cli task get": {schema: "long_task", examples: []string{"confluence-cli task get 12345 --compact"}},
+
+		// Page — core.
+		"confluence-cli page get":         {schema: "page", examples: []string{"confluence-cli page get 12345 --body-format markdown --compact", `confluence-cli page get --space ENG --title "Roadmap" --compact`}},
+		"confluence-cli page list":        {schema: "page_list", examples: []string{"confluence-cli page list --space ENG --limit 25 --compact"}},
+		"confluence-cli page create":      {schema: "page", examples: []string{`confluence-cli page create --space ENG --title "Notes" --body "# Hi" --dry-run`}},
+		"confluence-cli page update":      {schema: "page", examples: []string{`confluence-cli page update 12345 --title "Notes v2" --dry-run`}},
+		"confluence-cli page delete":      {schema: "page_delete", examples: []string{"confluence-cli page delete 12345 --dangerous --dry-run"}},
+		"confluence-cli page move":        {schema: "page", examples: []string{"confluence-cli page move 12345 --parent 67890 --dry-run"}},
+		"confluence-cli page children":    {schema: "page_list", examples: []string{"confluence-cli page children 12345 --compact"}},
+		"confluence-cli page descendants": {schema: "page_list", examples: []string{"confluence-cli page descendants 12345 --compact"}},
+		"confluence-cli page ancestors":   {schema: "page_ancestors", examples: []string{"confluence-cli page ancestors 12345 --compact"}},
+		"confluence-cli page history":     {schema: "page_history", examples: []string{"confluence-cli page history 12345 --compact"}},
+		"confluence-cli page restore":     {schema: "page", examples: []string{"confluence-cli page restore 12345 --version 3 --dry-run"}},
+
+		// Page — comments.
+		"confluence-cli page comment list":   {schema: "comment_list", examples: []string{"confluence-cli page comment list 12345 --location all --compact"}},
+		"confluence-cli page comment get":    {schema: "comment", examples: []string{"confluence-cli page comment get 99001 --compact"}},
+		"confluence-cli page comment add":    {schema: "comment", examples: []string{`confluence-cli page comment add 12345 --body "LGTM" --dry-run`}},
+		"confluence-cli page comment delete": {schema: "delete_result", examples: []string{"confluence-cli page comment delete 99001 --dangerous --dry-run"}},
+
+		// Page — attachments.
+		"confluence-cli page attachment list":     {schema: "attachment_list", examples: []string{"confluence-cli page attachment list 12345 --compact"}},
+		"confluence-cli page attachment upload":   {schema: "attachment_upload", examples: []string{"confluence-cli page attachment upload 12345 --file ./diagram.png --dry-run"}},
+		"confluence-cli page attachment download": {schema: "attachment_download", examples: []string{"confluence-cli page attachment download 55001 --out ./diagram.png"}},
+		"confluence-cli page attachment delete":   {schema: "delete_result", examples: []string{"confluence-cli page attachment delete 55001 --dangerous --dry-run"}},
+
+		// Page — labels.
+		"confluence-cli page label list":   {schema: "label_list", examples: []string{"confluence-cli page label list 12345 --compact"}},
+		"confluence-cli page label add":    {schema: "label_add", examples: []string{"confluence-cli page label add 12345 --labels adr,design --dry-run"}},
+		"confluence-cli page label remove": {schema: "label_remove", examples: []string{"confluence-cli page label remove 12345 --labels adr,design --dry-run"}},
 	}
 }
 
@@ -285,6 +315,30 @@ func referenceSchemas() map[string]referenceDataSchema {
 
 		// Task (cmd/task.go).
 		"long_task": {Shape: "object", Fields: []string{"id", "name", "percentage_complete", "successful", "finished", "messages"}},
+
+		// Page core (cmd/page.go). Title and body are external content.
+		"page":           {Shape: "object", Fields: []string{"id", "title", "space_key", "status", "type", "version", "url", "body", "body_format", "meta", "parent_id", "_untrusted"}, UntrustedFields: []string{"title", "body"}},
+		"page_list":      {Shape: "object", Fields: []string{"pages", "start_at", "limit", "size", "total_size", "has_more", "next_start_at"}, UntrustedFields: []string{"title"}},
+		"page_delete":    {Shape: "object", Fields: []string{"id", "status", "purged"}},
+		"page_ancestors": {Shape: "object", Fields: []string{"ancestors"}, UntrustedFields: []string{"title"}},
+		"page_history":   {Shape: "object", Fields: []string{"id", "latest", "versions", "created_by", "created_date"}},
+
+		// Page comments (cmd/page_comment.go).
+		"comment":      {Shape: "object", Fields: []string{"id", "title", "body", "location", "resolution", "_untrusted"}, UntrustedFields: []string{"title", "body"}},
+		"comment_list": {Shape: "object", Fields: []string{"comments", "start_at", "limit", "size", "has_more", "next_start_at"}, UntrustedFields: []string{"title", "body"}},
+
+		// Page attachments (cmd/page_attachment.go). Filenames are external.
+		"attachment_list":     {Shape: "object", Fields: []string{"attachments", "start_at", "limit", "size", "has_more", "next_start_at"}, UntrustedFields: []string{"filename"}},
+		"attachment_upload":   {Shape: "object", Fields: []string{"attachments", "count"}, UntrustedFields: []string{"filename"}},
+		"attachment_download": {Shape: "object", Fields: []string{"path", "size_bytes"}},
+
+		// Page labels (cmd/page_label.go).
+		"label_list":   {Shape: "object", Fields: []string{"labels", "start_at", "limit", "size", "has_more", "next_start_at"}},
+		"label_add":    {Shape: "object", Fields: []string{"labels", "count"}},
+		"label_remove": {Shape: "object", Fields: []string{"page_id", "ok", "items", "summary"}},
+
+		// Shared delete result (comment/attachment delete).
+		"delete_result": {Shape: "object", Fields: []string{"comment_id", "attachment_id", "status"}},
 	}
 }
 
