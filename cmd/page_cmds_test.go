@@ -617,3 +617,92 @@ func containsStr(ss []string, want string) bool {
 	}
 	return false
 }
+
+// ─── FCC coverage: read/list leaves + attachment delete ──────────────────────
+
+func TestPageDescendants_HappyPath(t *testing.T) {
+	pageServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/descendant/page") {
+			_, _ = w.Write([]byte(`{"results":[{"id":"7","type":"page","title":"Deep","_links":{"webui":"/d"}}],"start":0,"limit":25,"size":1,"_links":{}}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+	stdout, _ := runRootOK(t, "page", "descendants", "1")
+	var data struct {
+		Pages []struct {
+			ID string `json:"id"`
+		} `json:"pages"`
+	}
+	decodeEnvelopeData(t, stdout, &data)
+	if len(data.Pages) != 1 || data.Pages[0].ID != "7" {
+		t.Fatalf("pages=%+v", data.Pages)
+	}
+}
+
+func TestPageAttachmentList_HappyPath(t *testing.T) {
+	pageServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/child/attachment") && r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`{"results":[{"id":"55","title":"diagram.png","extensions":{"fileSize":1024,"mediaType":"image/png"}}],"start":0,"limit":25,"size":1,"_links":{}}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+	stdout, _ := runRootOK(t, "page", "attachment", "list", "12345")
+	var data struct {
+		Attachments []struct {
+			ID string `json:"id"`
+		} `json:"attachments"`
+	}
+	decodeEnvelopeData(t, stdout, &data)
+	if len(data.Attachments) != 1 || data.Attachments[0].ID != "55" {
+		t.Fatalf("attachments=%+v", data.Attachments)
+	}
+}
+
+func TestPageAttachmentDelete_DangerousGate(t *testing.T) {
+	pageServer(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	// Missing --dangerous in dry-run must be refused before any confirm token.
+	stdout, _ := runRootExpectSilent(t, ExitConfirmRequired, "--dry-run", "page", "attachment", "delete", "55")
+	if decodeEnvelopeError(t, stdout)["code"] != "E_CONFIRMATION_REQUIRED" {
+		t.Fatal("want E_CONFIRMATION_REQUIRED")
+	}
+	// Full two-step with --dangerous on both steps succeeds.
+	token := dryRunConfirmToken(t, "--dangerous", "page", "attachment", "delete", "55")
+	runRootOK(t, "--dangerous", "--confirm", token, "page", "attachment", "delete", "55")
+}
+
+func TestPageCommentGet_HappyPath(t *testing.T) {
+	pageServer(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"id":"9","type":"comment","title":"Re: Draft","body":{"storage":{"value":"<p>looks good</p>","representation":"storage"}},"extensions":{"location":"footer"}}`))
+	})
+	stdout, _ := runRootOK(t, "page", "comment", "get", "9")
+	var data struct {
+		ID   string `json:"id"`
+		Body string `json:"body"`
+	}
+	decodeEnvelopeData(t, stdout, &data)
+	if data.ID != "9" || !strings.Contains(data.Body, "looks good") {
+		t.Fatalf("comment=%+v", data)
+	}
+}
+
+func TestPageLabelList_HappyPath(t *testing.T) {
+	pageServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/label") && r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`{"results":[{"prefix":"global","name":"runbook","id":"100"}],"start":0,"limit":200,"size":1,"_links":{}}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+	stdout, _ := runRootOK(t, "page", "label", "list", "12345")
+	var data struct {
+		Labels []struct {
+			Name string `json:"name"`
+		} `json:"labels"`
+	}
+	decodeEnvelopeData(t, stdout, &data)
+	if len(data.Labels) != 1 || data.Labels[0].Name != "runbook" {
+		t.Fatalf("labels=%+v", data.Labels)
+	}
+}

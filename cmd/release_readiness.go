@@ -14,17 +14,15 @@ type releaseReadiness struct {
 
 func buildReleaseReadiness() releaseReadiness {
 	return releaseReadiness{
-		Level:                      "unpublishable",
+		Level:                      "beta",
 		FCCRequired:                true,
-		FCCStatus:                  "in_progress",
+		FCCStatus:                  "verified",
 		MockUpstreamRequired:       true,
-		MockUpstreamStatus:         "in_progress",
+		MockUpstreamStatus:         "verified",
 		LiveSmokeRequiredForStable: true,
 		LiveSmokeStatus:            "not_run",
-		Reason:                     "command layer is under construction: page/space/search domain commands are not implemented yet, FCC and mock upstream coverage are incomplete, and no live smoke has been recorded.",
+		Reason:                     "the full command tree is implemented with command-level tests for every leaf (FCC verified) and mock upstream contract tests; no recorded live smoke yet, so the release is capped at beta.",
 		RequiredEvidence: []string{
-			"functional_contract_coverage_100",
-			"mock_upstream_contract_tests",
 			"recorded_live_smoke_for_stable",
 		},
 	}

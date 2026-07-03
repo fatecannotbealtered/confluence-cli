@@ -132,8 +132,8 @@ func TestDoctor_NotConfigured(t *testing.T) {
 		t.Fatalf("config check should fail with a hint: %+v", result.Checks[0])
 	}
 	last := result.Checks[len(result.Checks)-1]
-	if last.Check != "release_readiness" || last.Status != "fail" {
-		t.Fatalf("release_readiness should be declared and fail while unpublishable: %+v", last)
+	if last.Check != "release_readiness" || last.Status != "warn" {
+		t.Fatalf("release_readiness should be declared and warn while beta: %+v", last)
 	}
 }
 
@@ -160,8 +160,8 @@ func TestDoctor_AllChecksJSON(t *testing.T) {
 	if byName["config"] != "pass" || byName["network"] != "pass" || byName["auth"] != "pass" || byName["server"] != "pass" {
 		t.Fatalf("checks=%v", result.Checks)
 	}
-	if byName["release_readiness"] != "fail" {
-		t.Fatalf("release_readiness must fail while declared unpublishable: %v", result.Checks)
+	if byName["release_readiness"] != "warn" {
+		t.Fatalf("release_readiness must warn while declared beta: %v", result.Checks)
 	}
 	if result.Username != "jdoe" || result.ServerVersion != "8.5.4" {
 		t.Fatalf("result=%+v", result)
@@ -288,8 +288,8 @@ func TestReference_JSONDocument(t *testing.T) {
 	if doc.Tool != "confluence-cli" || doc.SchemaVersion != "1.0" || doc.RiskTier != "T1" {
 		t.Fatalf("doc header=%+v", doc)
 	}
-	if doc.ReleaseReadiness.Level != "unpublishable" {
-		t.Fatalf("release level=%q, want unpublishable", doc.ReleaseReadiness.Level)
+	if doc.ReleaseReadiness.Level != "beta" {
+		t.Fatalf("release level=%q, want beta", doc.ReleaseReadiness.Level)
 	}
 	if doc.ExitCodes["130"] == "" || doc.ErrorCodes["E_INTERRUPTED"] == "" {
 		t.Fatal("exit/error code tables must include the interrupted mapping")
