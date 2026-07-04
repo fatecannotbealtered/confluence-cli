@@ -31,6 +31,7 @@ type contextDocument struct {
 	Credentials contextCredentials `json:"credentials"`
 	Account     *contextAccount    `json:"account,omitempty"`
 	Errors      []string           `json:"errors,omitempty"`
+	Notices     []updateNotice     `json:"notices,omitempty"`
 	Env         map[string]string  `json:"env"`
 }
 
@@ -71,6 +72,7 @@ func runContext(_ *cobra.Command, _ []string) error {
 		Runtime:     contextRuntime{OS: runtime.GOOS, Arch: runtime.GOARCH, CWD: cwd},
 		Config:      contextConfig{ConfigFile: config.FilePath()},
 		Credentials: contextCredentials{Status: "not_configured"},
+		Notices:     readCachedUpdateNotices(),
 		Env: map[string]string{
 			config.EnvURL:   envPresence(config.EnvURL),
 			config.EnvToken: envPresence(config.EnvToken),

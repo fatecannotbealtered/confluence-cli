@@ -128,7 +128,7 @@ func TestDoctor_NotConfigured(t *testing.T) {
 	if len(result.Checks) < 2 {
 		t.Fatalf("checks=%v", result.Checks)
 	}
-	if result.Checks[0].Check != "config" || result.Checks[0].Status != "fail" || result.Checks[0].Fix == "" {
+	if result.Checks[0].Check != "config" || result.Checks[0].Status != "fail" || result.Checks[0].Fix == nil {
 		t.Fatalf("config check should fail with a hint: %+v", result.Checks[0])
 	}
 	last := result.Checks[len(result.Checks)-1]
@@ -287,7 +287,7 @@ func TestReference_JSONDocument(t *testing.T) {
 		Schemas          map[string]any    `json:"schemas"`
 	}
 	decodeEnvelopeData(t, stdout, &doc)
-	if doc.Tool != "confluence-cli" || doc.SchemaVersion != "1.0" || doc.RiskTier != "T1" {
+	if doc.Tool != "confluence-cli" || doc.SchemaVersion != "1.0" || doc.RiskTier != "T2" {
 		t.Fatalf("doc header=%+v", doc)
 	}
 	if doc.ReleaseReadiness.Level != "stable" {

@@ -8,14 +8,14 @@ import "strings"
 type FlatPage struct {
 	ID        string   `json:"id"`
 	Title     string   `json:"title"`
-	SpaceKey  string   `json:"spaceKey"`
+	SpaceKey  string   `json:"space_key"`
 	Status    string   `json:"status"`
 	Type      string   `json:"type"`
 	Version   string   `json:"version,omitempty"`
 	Author    string   `json:"author,omitempty"`
 	Created   string   `json:"created,omitempty"`
 	Updated   string   `json:"updated,omitempty"`
-	ParentID  string   `json:"parentId,omitempty"`
+	ParentID  string   `json:"parent_id,omitempty"`
 	Excerpt   string   `json:"excerpt,omitempty"`
 	URL       string   `json:"url,omitempty"`
 	Untrusted []string `json:"_untrusted,omitempty"`
@@ -34,11 +34,11 @@ type FlatSpace struct {
 // PageToMap converts a FlatPage to a map for field filtering.
 func PageToMap(p FlatPage) map[string]any {
 	m := map[string]any{
-		"id":       p.ID,
-		"title":    p.Title,
-		"spaceKey": p.SpaceKey,
-		"status":   p.Status,
-		"type":     p.Type,
+		"id":        p.ID,
+		"title":     p.Title,
+		"space_key": p.SpaceKey,
+		"status":    p.Status,
+		"type":      p.Type,
 	}
 	if p.Version != "" {
 		m["version"] = p.Version
@@ -53,7 +53,7 @@ func PageToMap(p FlatPage) map[string]any {
 		m["updated"] = p.Updated
 	}
 	if p.ParentID != "" {
-		m["parentId"] = p.ParentID
+		m["parent_id"] = p.ParentID
 	}
 	if p.Excerpt != "" {
 		m["excerpt"] = p.Excerpt
@@ -68,20 +68,20 @@ func PageToMap(p FlatPage) map[string]any {
 }
 
 // pageCanonicalKey maps a normalized (lowercase) page field name to its
-// canonical output key (camelCase where applicable, matching FlatPage JSON tags).
+// canonical snake_case output key (matching FlatPage JSON tags).
 func pageCanonicalKey(normalized string) string {
 	switch normalized {
-	case "spacekey":
-		return "spaceKey"
-	case "parentid":
-		return "parentId"
+	case "spacekey", "space_key":
+		return "space_key"
+	case "parentid", "parent_id":
+		return "parent_id"
 	default:
 		return normalized
 	}
 }
 
 // FilterPageFields filters a FlatPage to only the specified field names.
-// Field names are case-insensitive; output keys use canonical camelCase.
+// Field names are case-insensitive; output keys use canonical snake_case.
 // The _untrusted marker is preserved for any included untrusted field.
 func FilterPageFields(p FlatPage, fieldNames []string) map[string]any {
 	m := PageToMap(p)

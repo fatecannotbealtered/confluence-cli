@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/fatecannotbealtered/confluence-cli/internal/api"
 	"github.com/fatecannotbealtered/confluence-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -54,9 +56,10 @@ func init() {
 
 func labelMap(l *api.Label) map[string]any {
 	return map[string]any{
-		"name":   l.Name,
-		"prefix": l.Prefix,
-		"id":     l.ID,
+		"name":       l.Name,
+		"prefix":     l.Prefix,
+		"id":         l.ID,
+		"_untrusted": []string{"name"},
 	}
 }
 
@@ -73,14 +76,7 @@ func runLabelList(_ *cobra.Command, args []string) error {
 	for i := range page.Items {
 		items = append(items, labelMap(&page.Items[i]))
 	}
-	output.PrintJSON(map[string]any{
-		"labels":        items,
-		"start_at":      page.Start,
-		"limit":         page.Limit,
-		"size":          page.Size,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStartAt,
-	})
+	output.PrintJSON(output.PagedMap(items, len(items), page.Start, page.NextStartAt, page.HasMore))
 	return nil
 }
 
@@ -122,39 +118,43 @@ func runLabelRemove(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// Remove each label; aggregate per-item results so partial failures are
-	// fully reported with ok=false but every attempt visible.
+	// Remove each label; aggregate per-item results under the canonical batch
+	// contract (items[].{target,ok,error{code,retryable}} + summary{total,
+	// succeeded,failed}) so partial failures are fully reported with every
+	// attempt visible.
 	items := make([]map[string]any, 0, len(labelRmNames))
-	allOK := true
+	succeeded, failed := 0, 0
 	for _, name := range labelRmNames {
-		entry := map[string]any{"name": name}
+		entry := map[string]any{"target": name, "ok": true}
 		if err := client.Labels.RemoveLabel(args[0], name); err != nil {
-			allOK = false
 			entry["ok"] = false
-			entry["error"] = err.Error()
+			entry["error"] = itemErrorFromAPI(err)
+			failed++
 		} else {
-			entry["ok"] = true
+			succeeded++
 		}
 		items = append(items, entry)
 	}
 	output.PrintJSON(map[string]any{
 		"page_id": args[0],
-		"ok":      allOK,
+		"ok":      failed == 0,
 		"items":   items,
-		"summary": map[string]any{"total": len(labelRmNames), "removed": countOK(items)},
+		"summary": map[string]any{"total": len(labelRmNames), "succeeded": succeeded, "failed": failed},
 	})
-	if !allOK {
+	if failed > 0 {
 		return SilentErr(ExitGeneric)
 	}
 	return nil
 }
 
-func countOK(items []map[string]any) int {
-	n := 0
-	for _, it := range items {
-		if it["ok"] == true {
-			n++
-		}
+// itemErrorFromAPI renders a batch per-item error as the canonical
+// {code, retryable} shape (contract.json batch.item_error_shape). An
+// api.APIError contributes its E_* code and retryability; any other error
+// falls back to E_UNKNOWN (non-retryable).
+func itemErrorFromAPI(err error) map[string]any {
+	var apiErr *api.APIError
+	if errors.As(err, &apiErr) {
+		return map[string]any{"code": apiErr.Code, "retryable": apiErr.Retryable}
 	}
-	return n
+	return map[string]any{"code": string(output.ErrUnknown), "retryable": false}
 }

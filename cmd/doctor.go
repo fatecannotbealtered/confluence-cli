@@ -22,10 +22,10 @@ func init() {
 }
 
 type doctorCheck struct {
-	Check   string `json:"check"`
-	Status  string `json:"status"`
-	Message string `json:"message,omitempty"`
-	Fix     string `json:"fix,omitempty"`
+	Check   string  `json:"check"`
+	Status  string  `json:"status"`
+	Message string  `json:"message,omitempty"`
+	Fix     *string `json:"fix"`
 }
 
 type doctorResult struct {
@@ -40,7 +40,11 @@ type doctorResult struct {
 func runDoctor(_ *cobra.Command, _ []string) error {
 	var result doctorResult
 	addCheck := func(check, status, msg, fix string) {
-		result.Checks = append(result.Checks, doctorCheck{Check: check, Status: status, Message: msg, Fix: fix})
+		var fixPtr *string
+		if fix != "" {
+			fixPtr = &fix
+		}
+		result.Checks = append(result.Checks, doctorCheck{Check: check, Status: status, Message: msg, Fix: fixPtr})
 	}
 	addReleaseReadinessCheck := func() {
 		addCheck("release_readiness", releaseReadinessCheckStatus(), buildReleaseReadiness().Reason, releaseReadinessCheckFix())
@@ -121,8 +125,8 @@ func printDoctorText(result doctorResult) {
 			output.Warn(c.Check + ": " + c.Message)
 		default:
 			output.Error(c.Check + ": " + c.Message)
-			if c.Fix != "" {
-				output.Gray("  fix: " + c.Fix)
+			if c.Fix != nil {
+				output.Gray("  fix: " + *c.Fix)
 			}
 		}
 	}

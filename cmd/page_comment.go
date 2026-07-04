@@ -114,14 +114,7 @@ func runCommentList(_ *cobra.Command, args []string) error {
 	for i := range page.Items {
 		items = append(items, commentMap(&page.Items[i]))
 	}
-	output.PrintJSON(map[string]any{
-		"comments":      items,
-		"start_at":      page.Start,
-		"limit":         page.Limit,
-		"size":          page.Size,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStartAt,
-	})
+	output.PrintJSON(output.PagedMap(items, len(items), page.Start, page.NextStartAt, page.HasMore))
 	return nil
 }
 
@@ -150,7 +143,12 @@ func runCommentAdd(_ *cobra.Command, args []string) error {
 		emitError(output.ErrValidation, err.Error(), nil)
 		return SilentErr(ExitBadArgs)
 	}
-	detail := map[string]any{"page_id": args[0], "body_preview": truncate(storage, 500)}
+	detail := map[string]any{
+		"page_id":      args[0],
+		"body_preview": truncate(storage, 500),
+		// Bind the full body into the confirm token, not just the preview.
+		"body_sha256": tokenFingerprint(storage),
+	}
 	if commentAddReplyTo != "" {
 		detail["reply_to"] = commentAddReplyTo
 	}

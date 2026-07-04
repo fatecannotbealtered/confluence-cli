@@ -122,14 +122,7 @@ func runSpaceList(_ *cobra.Command, _ []string) error {
 	for i := range page.Items {
 		items = append(items, output.FilterSpaceFields(flatSpace(&page.Items[i]), fieldsList))
 	}
-	output.PrintJSON(map[string]any{
-		"spaces":        items,
-		"start_at":      page.Start,
-		"limit":         page.Limit,
-		"size":          page.Size,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStartAt,
-	})
+	output.PrintJSON(output.PagedMap(items, len(items), page.Start, page.NextStartAt, page.HasMore))
 	return nil
 }
 
@@ -178,7 +171,16 @@ func runSpaceUpdate(_ *cobra.Command, args []string) error {
 		emitError(output.ErrValidation, "provide --name and/or --description", nil)
 		return SilentErr(ExitBadArgs)
 	}
-	if dryRunOutput("space update", map[string]any{"key": key}) {
+	updateDetail := map[string]any{"key": key}
+	if spaceUpdateName != "" {
+		updateDetail["name"] = spaceUpdateName
+	}
+	if spaceUpdateDesc != "" {
+		updateDetail["description"] = spaceUpdateDesc
+	}
+	// Bind name/description into the confirm token (CLI-SPEC §7) so the token
+	// cannot authorize an arbitrary payload different from the preview.
+	if dryRunOutput("space update", updateDetail) {
 		return nil
 	}
 	client, err := newClient()

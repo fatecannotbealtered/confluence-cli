@@ -1,7 +1,7 @@
 <h1 align="center">confluence-cli</h1>
 
 <p align="center">
-  <strong>Agent-native CLI for Confluence Data Center CLI for AI Agents - manage pages, spaces, attachments, comments, labels, and CQL search &middot; JSON-first &middot; dry-run guarded</strong>
+  <strong>Agent-native Confluence Data Center CLI &middot; JSON-first &middot; dry-run guarded</strong>
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
   <img alt="Dry-run guarded" src="https://img.shields.io/badge/writes-dry--run%20guarded-F59E0B?style=for-the-badge">
 </p>
 
-> Agent-native CLI for Confluence Data Center CLI for AI Agents - manage pages, spaces, attachments, comments, labels, and CQL search.
+> Agent-native Confluence Data Center CLI — manage pages, spaces, attachments, comments, labels, and CQL search.
 
 ## Agent Install
 
@@ -54,7 +54,12 @@ Worst-case risk tier: **T2** - can delete page trees and spaces, and modify shar
 
 | Area | Commands | Agent use |
 |------|----------|-----------|
-| Core domain | `confluence-cli <domain> ...` | Replace with the main command groups this tool exposes. |
+| Pages | `page get / list / create / update / move / delete / restore / history / children / descendants / ancestors` | Manage page lifecycle, content, hierarchy, and versions. |
+| Comments, attachments, labels | `page comment ...`, `page attachment ...`, `page label ...` | Operate page collaboration data and local attachment downloads. |
+| Spaces | `space get / list / create / update / delete` | Discover and manage spaces. |
+| Search | `search <cql>` | Run CQL and convenience-flag queries with token-efficient JSON fields. |
+| Users and tasks | `user current / get / search`, `task get` | Look up users and inspect long-running tasks. |
+| Auth | `auth login / logout / status` | Manage PAT credentials for Data Center. |
 | Self-description | `reference`, `context`, `doctor`, `changelog`, `update` | Bootstrap an Agent with live capabilities and version deltas. |
 
 The README is intentionally a map, not the full manual. Agents should call `confluence-cli reference --compact` for exact flags, schemas, permissions, exit codes, and error codes before executing task commands.

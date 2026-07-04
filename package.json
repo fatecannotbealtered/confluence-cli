@@ -1,6 +1,6 @@
 {
   "name": "@fateforge/confluence-cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Confluence Data Center CLI for AI Agents - manage pages, spaces, attachments, comments, labels, and CQL search",
   "license": "MIT",
   "author": "Sean Guo",
@@ -19,12 +19,12 @@
     "check-version": "node scripts/check-version.js"
   },
   "optionalDependencies": {
-    "@fateforge/confluence-cli-darwin-arm64": "0.1.0",
-    "@fateforge/confluence-cli-darwin-x64": "0.1.0",
-    "@fateforge/confluence-cli-linux-arm64": "0.1.0",
-    "@fateforge/confluence-cli-linux-x64": "0.1.0",
-    "@fateforge/confluence-cli-win32-arm64": "0.1.0",
-    "@fateforge/confluence-cli-win32-x64": "0.1.0"
+    "@fateforge/confluence-cli-darwin-arm64": "1.0.0",
+    "@fateforge/confluence-cli-darwin-x64": "1.0.0",
+    "@fateforge/confluence-cli-linux-arm64": "1.0.0",
+    "@fateforge/confluence-cli-linux-x64": "1.0.0",
+    "@fateforge/confluence-cli-win32-arm64": "1.0.0",
+    "@fateforge/confluence-cli-win32-x64": "1.0.0"
   },
   "files": [
     "scripts/run.js",

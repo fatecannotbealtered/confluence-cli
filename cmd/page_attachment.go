@@ -105,14 +105,7 @@ func runAttachmentList(_ *cobra.Command, args []string) error {
 	for i := range page.Items {
 		items = append(items, attachmentMap(&page.Items[i]))
 	}
-	output.PrintJSON(map[string]any{
-		"attachments":   items,
-		"start_at":      page.Start,
-		"limit":         page.Limit,
-		"size":          page.Size,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStartAt,
-	})
+	output.PrintJSON(output.PagedMap(items, len(items), page.Start, page.NextStartAt, page.HasMore))
 	return nil
 }
 

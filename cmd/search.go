@@ -270,14 +270,9 @@ func runSearch(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return emitAPIError(err)
 	}
-	output.PrintJSON(map[string]any{
-		"results":       searchResultMaps(page.Results),
-		"start_at":      page.Start,
-		"size":          page.Size,
-		"total_size":    page.TotalSize,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStart,
-	})
+	result := output.PagedMap(searchResultMaps(page.Results), len(page.Results), page.Start, page.NextStart, page.HasMore)
+	result["total_size"] = page.TotalSize
+	output.PrintJSON(result)
 	return nil
 }
 
@@ -304,12 +299,12 @@ func runSearchAll(client *api.Client, cql string) error {
 	if capped {
 		output.AddNotice(fmt.Sprintf("result set truncated at the --all cap of %d", searchAllCap))
 	}
-	output.PrintJSON(map[string]any{
-		"results":    searchResultMaps(all),
-		"size":       len(all),
-		"total_size": len(all),
-		"has_more":   false,
-	})
+	result := output.PagedMap(searchResultMaps(all), len(all), 0, 0, false)
+	result["total_size"] = len(all)
+	if capped {
+		result["truncated"] = true
+	}
+	output.PrintJSON(result)
 	return nil
 }
 

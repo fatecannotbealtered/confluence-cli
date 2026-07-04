@@ -122,7 +122,7 @@ func TestSearch_HappyPath(t *testing.T) {
 			SpaceKey  string   `json:"space_key"`
 			URL       string   `json:"url"`
 			Untrusted []string `json:"_untrusted"`
-		} `json:"results"`
+		} `json:"items"`
 		TotalSize int `json:"total_size"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
@@ -198,7 +198,7 @@ func TestSearch_AllPaginatesAndCaps(t *testing.T) {
 	stdout, _ := runRootOK(t, "search", "--all", "--text", "x")
 	env := decodeEnvelope(t, stdout)
 	var data struct {
-		Results []any `json:"results"`
+		Results []any `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Results) != searchAllCap {
@@ -243,7 +243,7 @@ func TestSearch_ExcerptHighlightMarkersStripped(t *testing.T) {
 	var data struct {
 		Results []struct {
 			Excerpt string `json:"excerpt"`
-		} `json:"results"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Results) != 1 {
