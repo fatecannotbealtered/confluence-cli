@@ -123,6 +123,7 @@ const (
 	ErrNotFound        ErrorCode = "E_NOT_FOUND"
 	ErrRateLimit       ErrorCode = "E_RATE_LIMITED"
 	ErrServer          ErrorCode = "E_SERVER"
+	ErrUsage           ErrorCode = "E_USAGE"
 	ErrValidation      ErrorCode = "E_VALIDATION"
 	ErrNetwork         ErrorCode = "E_NETWORK"
 	ErrConfirmRequired ErrorCode = "E_CONFIRMATION_REQUIRED"

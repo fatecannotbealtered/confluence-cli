@@ -26,14 +26,14 @@ func TestPageToMap_AllFields(t *testing.T) {
 	want := map[string]any{
 		"id":         "12345",
 		"title":      "Design doc",
-		"spaceKey":   "ENG",
+		"space_key":  "ENG",
 		"status":     "current",
 		"type":       "page",
 		"version":    "7",
 		"author":     "alice",
 		"created":    "2026-01-01T00:00:00Z",
 		"updated":    "2026-01-02T00:00:00Z",
-		"parentId":   "100",
+		"parent_id":  "100",
 		"excerpt":    "intro",
 		"url":        "https://confluence.example.com/pages/12345",
 		"_untrusted": []string{"title", "excerpt"},
@@ -78,7 +78,7 @@ func TestFilterPageFields(t *testing.T) {
 		}
 	})
 
-	t.Run("camelCase keys resolve case-insensitively", func(t *testing.T) {
+	t.Run("snake_case keys resolve case-insensitively", func(t *testing.T) {
 		p2 := p
 		p2.ParentID = "100"
 		for _, fields := range [][]string{
@@ -87,8 +87,8 @@ func TestFilterPageFields(t *testing.T) {
 			{"spaceKey", "parentId"},
 		} {
 			got := FilterPageFields(p2, fields)
-			if got["spaceKey"] != "ENG" || got["parentId"] != "100" {
-				t.Errorf("fields %v: got %v, want canonical camelCase keys", fields, got)
+			if got["space_key"] != "ENG" || got["parent_id"] != "100" {
+				t.Errorf("fields %v: got %v, want canonical snake_case keys", fields, got)
 			}
 		}
 	})
@@ -206,11 +206,11 @@ func TestFilterSpaceFields_UntrustedPropagation(t *testing.T) {
 }
 
 func TestPageCanonicalKey(t *testing.T) {
-	if pageCanonicalKey("spacekey") != "spaceKey" {
-		t.Error("spacekey should map to spaceKey")
+	if pageCanonicalKey("spacekey") != "space_key" {
+		t.Error("spacekey should map to space_key")
 	}
-	if pageCanonicalKey("parentid") != "parentId" {
-		t.Error("parentid should map to parentId")
+	if pageCanonicalKey("parentid") != "parent_id" {
+		t.Error("parentid should map to parent_id")
 	}
 	if pageCanonicalKey("title") != "title" {
 		t.Error("title should pass through unchanged")

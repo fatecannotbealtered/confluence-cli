@@ -118,7 +118,7 @@ func buildReferenceDocument(root *cobra.Command) referenceDocument {
 		Tool:             "confluence-cli",
 		Version:          root.Version,
 		SchemaVersion:    output.SchemaVersion,
-		RiskTier:         "T1",
+		RiskTier:         "T2",
 		ReleaseReadiness: buildReleaseReadiness(),
 		Root:             rootRef,
 		Commands:         commands,
@@ -304,39 +304,39 @@ func referenceSchemas() map[string]referenceDataSchema {
 		"update_result": {Shape: "object", Fields: []string{"status", "current_version", "target_version", "requested_version", "previous_version", "knowledge_refresh", "update_available", "installed", "check_only", "dry_run", "install_method", "command", "asset", "path", "checksum_verified", "signature_status", "signature_verified", "skill_sync_command", "skill_sync_status", "notices"}},
 
 		// Space (cmd/space.go).
-		"space_list":   {Shape: "object", Fields: []string{"spaces", "start_at", "limit", "size", "has_more", "next_start_at"}},
+		"space_list":   {Shape: "object", Fields: []string{"items", "count", "offset", "next_offset", "has_more"}, UntrustedFields: []string{"name", "description"}},
 		"space":        {Shape: "object", Fields: []string{"key", "name", "type", "status", "description", "_untrusted"}, UntrustedFields: []string{"name", "description"}},
 		"space_delete": {Shape: "object", Fields: []string{"task_id", "status", "status_link", "successful", "percentage_complete"}},
 
 		// Search (cmd/search.go). Each result carries external title/excerpt.
-		"search_result": {Shape: "object", Fields: []string{"results", "start_at", "size", "total_size", "has_more", "next_start_at"}, UntrustedFields: []string{"title", "excerpt"}},
+		"search_result": {Shape: "object", Fields: []string{"items", "count", "offset", "next_offset", "has_more", "total_size"}, UntrustedFields: []string{"title", "excerpt"}},
 
 		// User (cmd/user.go).
 		"user":      {Shape: "object", Fields: []string{"username", "display_name", "user_key", "type", "_untrusted"}, UntrustedFields: []string{"display_name"}},
-		"user_list": {Shape: "object", Fields: []string{"users", "start_at", "size", "total_size", "has_more", "next_start_at"}, UntrustedFields: []string{"display_name"}},
+		"user_list": {Shape: "object", Fields: []string{"items", "count", "offset", "next_offset", "has_more", "total_size"}, UntrustedFields: []string{"display_name"}},
 
 		// Task (cmd/task.go).
 		"long_task": {Shape: "object", Fields: []string{"id", "name", "percentage_complete", "successful", "finished", "messages"}},
 
 		// Page core (cmd/page.go). Title and body are external content.
-		"page":           {Shape: "object", Fields: []string{"id", "title", "space_key", "status", "type", "version", "url", "body", "body_format", "meta", "unsupported_macros", "parent_id", "_untrusted"}, UntrustedFields: []string{"title", "body"}},
-		"page_list":      {Shape: "object", Fields: []string{"pages", "start_at", "limit", "size", "total_size", "has_more", "next_start_at"}, UntrustedFields: []string{"title"}},
+		"page":           {Shape: "object", Fields: []string{"id", "title", "space_key", "status", "type", "version", "url", "body", "body_format", "body_fidelity", "unsupported_macros", "parent_id", "_untrusted"}, UntrustedFields: []string{"title", "body"}},
+		"page_list":      {Shape: "object", Fields: []string{"items", "count", "offset", "next_offset", "has_more", "total_size"}, UntrustedFields: []string{"title"}},
 		"page_delete":    {Shape: "object", Fields: []string{"id", "status", "purged"}},
 		"page_ancestors": {Shape: "object", Fields: []string{"ancestors"}, UntrustedFields: []string{"title"}},
-		"page_history":   {Shape: "object", Fields: []string{"id", "latest", "versions", "created_by", "created_date"}},
+		"page_history":   {Shape: "object", Fields: []string{"id", "latest", "versions", "created_by", "created_date"}, UntrustedFields: []string{"created_by", "by", "message"}},
 
 		// Page comments (cmd/page_comment.go).
 		"comment":      {Shape: "object", Fields: []string{"id", "title", "body", "location", "resolution", "_untrusted"}, UntrustedFields: []string{"title", "body"}},
-		"comment_list": {Shape: "object", Fields: []string{"comments", "start_at", "limit", "size", "has_more", "next_start_at"}, UntrustedFields: []string{"title", "body"}},
+		"comment_list": {Shape: "object", Fields: []string{"items", "count", "offset", "next_offset", "has_more"}, UntrustedFields: []string{"title", "body"}},
 
 		// Page attachments (cmd/page_attachment.go). Filenames are external.
-		"attachment_list":     {Shape: "object", Fields: []string{"attachments", "start_at", "limit", "size", "has_more", "next_start_at"}, UntrustedFields: []string{"filename"}},
+		"attachment_list":     {Shape: "object", Fields: []string{"items", "count", "offset", "next_offset", "has_more"}, UntrustedFields: []string{"filename"}},
 		"attachment_upload":   {Shape: "object", Fields: []string{"attachments", "count"}, UntrustedFields: []string{"filename"}},
 		"attachment_download": {Shape: "object", Fields: []string{"path", "size_bytes"}},
 
 		// Page labels (cmd/page_label.go).
-		"label_list":   {Shape: "object", Fields: []string{"labels", "start_at", "limit", "size", "has_more", "next_start_at"}},
-		"label_add":    {Shape: "object", Fields: []string{"labels", "count"}},
+		"label_list":   {Shape: "object", Fields: []string{"items", "count", "offset", "next_offset", "has_more"}, UntrustedFields: []string{"name"}},
+		"label_add":    {Shape: "object", Fields: []string{"labels", "count"}, UntrustedFields: []string{"name"}},
 		"label_remove": {Shape: "object", Fields: []string{"page_id", "ok", "items", "summary"}},
 
 		// Shared delete result (comment/attachment delete).
@@ -367,6 +367,7 @@ func referenceErrorCodes() map[string]string {
 		string(output.ErrNotFound):        "resource not found",
 		string(output.ErrRateLimit):       "rate limited",
 		string(output.ErrServer):          "Confluence server error",
+		string(output.ErrUsage):           "arguments or request are invalid",
 		string(output.ErrValidation):      "arguments or request are invalid",
 		string(output.ErrNetwork):         "network failure",
 		string(output.ErrConfirmRequired): "write requires a dry-run confirmation token",

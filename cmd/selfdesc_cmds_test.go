@@ -128,12 +128,12 @@ func TestDoctor_NotConfigured(t *testing.T) {
 	if len(result.Checks) < 2 {
 		t.Fatalf("checks=%v", result.Checks)
 	}
-	if result.Checks[0].Check != "config" || result.Checks[0].Status != "fail" || result.Checks[0].Fix == "" {
+	if result.Checks[0].Check != "config" || result.Checks[0].Status != "fail" || result.Checks[0].Fix == nil {
 		t.Fatalf("config check should fail with a hint: %+v", result.Checks[0])
 	}
 	last := result.Checks[len(result.Checks)-1]
-	if last.Check != "release_readiness" || last.Status != "warn" {
-		t.Fatalf("release_readiness should be declared and warn while beta: %+v", last)
+	if last.Check != "release_readiness" || last.Status != "pass" {
+		t.Fatalf("release_readiness should be declared and pass while stable: %+v", last)
 	}
 }
 
@@ -160,15 +160,15 @@ func TestDoctor_AllChecksJSON(t *testing.T) {
 	if byName["config"] != "pass" || byName["network"] != "pass" || byName["auth"] != "pass" || byName["server"] != "pass" {
 		t.Fatalf("checks=%v", result.Checks)
 	}
-	if byName["release_readiness"] != "warn" {
-		t.Fatalf("release_readiness must warn while declared beta: %v", result.Checks)
+	if byName["release_readiness"] != "pass" {
+		t.Fatalf("release_readiness must pass while declared stable: %v", result.Checks)
 	}
 	if result.Username != "jdoe" || result.ServerVersion != "8.5.4" {
 		t.Fatalf("result=%+v", result)
 	}
 }
 
-func TestDoctor_SystemInfoForbiddenIsWarn(t *testing.T) {
+func TestDoctor_SystemInfoUnavailableIsPass(t *testing.T) {
 	mockConfluenceServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/rest/api/user/current" {
 			_, _ = w.Write([]byte(`{"username":"jdoe","displayName":"John Doe"}`))
@@ -180,8 +180,10 @@ func TestDoctor_SystemInfoForbiddenIsWarn(t *testing.T) {
 	stdout, _ := runRootOK(t, "doctor")
 	var result doctorResult
 	decodeEnvelopeData(t, stdout, &result)
-	if doctorChecksByName(result)["server"] != "warn" {
-		t.Fatalf("admin-only systemInfo should warn, not fail: %v", result.Checks)
+	// Auth already proved reachability; an unreadable version endpoint (403/404
+	// on some DC versions) is informational, so the server check still passes.
+	if doctorChecksByName(result)["server"] != "pass" {
+		t.Fatalf("unreadable systemInfo should pass (connectivity proven by auth): %v", result.Checks)
 	}
 }
 
@@ -285,11 +287,11 @@ func TestReference_JSONDocument(t *testing.T) {
 		Schemas          map[string]any    `json:"schemas"`
 	}
 	decodeEnvelopeData(t, stdout, &doc)
-	if doc.Tool != "confluence-cli" || doc.SchemaVersion != "1.0" || doc.RiskTier != "T1" {
+	if doc.Tool != "confluence-cli" || doc.SchemaVersion != "1.0" || doc.RiskTier != "T2" {
 		t.Fatalf("doc header=%+v", doc)
 	}
-	if doc.ReleaseReadiness.Level != "beta" {
-		t.Fatalf("release level=%q, want beta", doc.ReleaseReadiness.Level)
+	if doc.ReleaseReadiness.Level != "stable" {
+		t.Fatalf("release level=%q, want stable", doc.ReleaseReadiness.Level)
 	}
 	if doc.ExitCodes["130"] == "" || doc.ErrorCodes["E_INTERRUPTED"] == "" {
 		t.Fatal("exit/error code tables must include the interrupted mapping")

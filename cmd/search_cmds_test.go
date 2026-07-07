@@ -122,7 +122,7 @@ func TestSearch_HappyPath(t *testing.T) {
 			SpaceKey  string   `json:"space_key"`
 			URL       string   `json:"url"`
 			Untrusted []string `json:"_untrusted"`
-		} `json:"results"`
+		} `json:"items"`
 		TotalSize int `json:"total_size"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
@@ -198,7 +198,7 @@ func TestSearch_AllPaginatesAndCaps(t *testing.T) {
 	stdout, _ := runRootOK(t, "search", "--all", "--text", "x")
 	env := decodeEnvelope(t, stdout)
 	var data struct {
-		Results []any `json:"results"`
+		Results []any `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Results) != searchAllCap {
@@ -233,4 +233,27 @@ func itoa(n int) string {
 		n /= 10
 	}
 	return string(b)
+}
+
+func TestSearch_ExcerptHighlightMarkersStripped(t *testing.T) {
+	mockConfluenceServer(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"results":[{"content":{"id":"1","type":"page","space":{"key":"DEV"},"_links":{"webui":"/x"}},"title":"T","excerpt":"the @@@hl@@@roadmap@@@endhl@@@ plan","url":"/x","entityType":"content","lastModified":"2026-06-01T00:00:00.000Z"}],"start":0,"limit":25,"size":1,"totalSize":1,"_links":{}}`))
+	})
+	stdout, _ := runRootOK(t, "search", "--text", "roadmap", "--compact")
+	var data struct {
+		Results []struct {
+			Excerpt string `json:"excerpt"`
+		} `json:"items"`
+	}
+	decodeEnvelopeData(t, stdout, &data)
+	if len(data.Results) != 1 {
+		t.Fatalf("results=%d", len(data.Results))
+	}
+	ex := data.Results[0].Excerpt
+	if strings.Contains(ex, "@@@") {
+		t.Fatalf("highlight markers not stripped: %q", ex)
+	}
+	if !strings.Contains(ex, "roadmap") {
+		t.Fatalf("matched text lost: %q", ex)
+	}
 }

@@ -28,7 +28,7 @@ func TestSpaceList_HappyPath(t *testing.T) {
 		Spaces []struct {
 			Key       string   `json:"key"`
 			Untrusted []string `json:"_untrusted"`
-		} `json:"spaces"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Spaces) != 1 || data.Spaces[0].Key != "ENG" {

@@ -96,13 +96,8 @@ func runUserSearch(_ *cobra.Command, args []string) error {
 			users = append(users, userMap(u))
 		}
 	}
-	output.PrintJSON(map[string]any{
-		"users":         users,
-		"start_at":      page.Start,
-		"size":          page.Size,
-		"total_size":    page.TotalSize,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStart,
-	})
+	result := output.PagedMap(users, len(users), page.Start, page.NextStart, page.HasMore)
+	result["total_size"] = page.TotalSize
+	output.PrintJSON(result)
 	return nil
 }

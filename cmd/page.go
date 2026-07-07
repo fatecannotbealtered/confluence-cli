@@ -340,7 +340,7 @@ func attachBody(result map[string]any, c *api.Content) error {
 		}
 		result["body"] = res.Markdown
 		result["body_format"] = "markdown"
-		result["meta"] = map[string]any{"fidelity": res.Fidelity}
+		result["body_fidelity"] = map[string]any{"fidelity": res.Fidelity}
 		if len(res.UnsupportedMacros) > 0 {
 			result["unsupported_macros"] = res.UnsupportedMacros
 		}
@@ -385,14 +385,9 @@ func runPageList(_ *cobra.Command, _ []string) error {
 		}
 		items = append(items, output.FilterPageFields(fp, fieldsList))
 	}
-	output.PrintJSON(map[string]any{
-		"pages":         items,
-		"start_at":      page.Start,
-		"size":          page.Size,
-		"total_size":    page.TotalSize,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStart,
-	})
+	result := output.PagedMap(items, len(items), page.Start, page.NextStart, page.HasMore)
+	result["total_size"] = page.TotalSize
+	output.PrintJSON(result)
 	return nil
 }
 
@@ -427,6 +422,9 @@ func runPageCreate(_ *cobra.Command, _ []string) error {
 		preview["parent"] = pageCreateParent
 	}
 	preview["storage_preview"] = truncate(storage, 500)
+	// Bind the full body (not just the truncated preview) into the confirm token
+	// so a --confirm cannot write a body that differs from the previewed one.
+	preview["storage_sha256"] = tokenFingerprint(storage)
 	if dryRunOutput("page create", preview) {
 		return nil
 	}
@@ -485,6 +483,11 @@ func runPageUpdate(_ *cobra.Command, args []string) error {
 	detail := map[string]any{"id": id, "current_version": curVer}
 	if pageUpdateTitle != "" {
 		detail["new_title"] = pageUpdateTitle
+	}
+	if bodySet {
+		// Bind the new body into the confirm token (CLI-SPEC §7): a token issued
+		// for one body must not authorize writing a different body.
+		detail["body_sha256"] = tokenFingerprint(storage)
 	}
 	if dryRunOutput("page update", detail) {
 		return nil
@@ -791,14 +794,7 @@ func flatPagePage(client *api.Client, page *api.Page[api.Content]) map[string]an
 	for i := range page.Items {
 		items = append(items, output.FilterPageFields(flatPageFromContent(client, &page.Items[i]), fieldsList))
 	}
-	return map[string]any{
-		"pages":         items,
-		"start_at":      page.Start,
-		"limit":         page.Limit,
-		"size":          page.Size,
-		"has_more":      page.HasMore,
-		"next_start_at": page.NextStartAt,
-	}
+	return output.PagedMap(items, len(items), page.Start, page.NextStartAt, page.HasMore)
 }
 
 func contentType(c *api.Content) string {

@@ -55,7 +55,7 @@ func TestPageGet_MarkdownRoundtrip(t *testing.T) {
 		BodyFormat string         `json:"body_format"`
 		URL        string         `json:"url"`
 		Version    int            `json:"version"`
-		Meta       map[string]any `json:"meta"`
+		Meta       map[string]any `json:"body_fidelity"`
 		Untrusted  []string       `json:"_untrusted"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
@@ -132,7 +132,7 @@ func TestPageList_HappyPath(t *testing.T) {
 		Pages []struct {
 			ID    string `json:"id"`
 			Title string `json:"title"`
-		} `json:"pages"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Pages) != 1 || data.Pages[0].ID != "1" {
@@ -332,7 +332,7 @@ func TestPageChildren_HappyPath(t *testing.T) {
 	var data struct {
 		Pages []struct {
 			ID string `json:"id"`
-		} `json:"pages"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Pages) != 1 || data.Pages[0].ID != "2" {
@@ -444,7 +444,7 @@ func TestPageCommentList_LocationFilter(t *testing.T) {
 			ID         string `json:"id"`
 			Body       string `json:"body"`
 			Resolution string `json:"resolution"`
-		} `json:"comments"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Comments) != 1 || data.Comments[0].Resolution != "open" {
@@ -650,7 +650,7 @@ func TestPageDescendants_HappyPath(t *testing.T) {
 	var data struct {
 		Pages []struct {
 			ID string `json:"id"`
-		} `json:"pages"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Pages) != 1 || data.Pages[0].ID != "7" {
@@ -670,7 +670,7 @@ func TestPageAttachmentList_HappyPath(t *testing.T) {
 	var data struct {
 		Attachments []struct {
 			ID string `json:"id"`
-		} `json:"attachments"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Attachments) != 1 || data.Attachments[0].ID != "55" {
@@ -717,7 +717,7 @@ func TestPageLabelList_HappyPath(t *testing.T) {
 	var data struct {
 		Labels []struct {
 			Name string `json:"name"`
-		} `json:"labels"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Labels) != 1 || data.Labels[0].Name != "runbook" {

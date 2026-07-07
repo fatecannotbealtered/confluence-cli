@@ -83,7 +83,7 @@ func TestUserSearch_HappyPath(t *testing.T) {
 	var data struct {
 		Users []struct {
 			Username string `json:"username"`
-		} `json:"users"`
+		} `json:"items"`
 	}
 	decodeEnvelopeData(t, stdout, &data)
 	if len(data.Users) != 1 || data.Users[0].Username != "jdoe" {

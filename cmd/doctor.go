@@ -22,10 +22,10 @@ func init() {
 }
 
 type doctorCheck struct {
-	Check   string `json:"check"`
-	Status  string `json:"status"`
-	Message string `json:"message,omitempty"`
-	Fix     string `json:"fix,omitempty"`
+	Check   string  `json:"check"`
+	Status  string  `json:"status"`
+	Message string  `json:"message,omitempty"`
+	Fix     *string `json:"fix"`
 }
 
 type doctorResult struct {
@@ -40,7 +40,11 @@ type doctorResult struct {
 func runDoctor(_ *cobra.Command, _ []string) error {
 	var result doctorResult
 	addCheck := func(check, status, msg, fix string) {
-		result.Checks = append(result.Checks, doctorCheck{Check: check, Status: status, Message: msg, Fix: fix})
+		var fixPtr *string
+		if fix != "" {
+			fixPtr = &fix
+		}
+		result.Checks = append(result.Checks, doctorCheck{Check: check, Status: status, Message: msg, Fix: fixPtr})
 	}
 	addReleaseReadinessCheck := func() {
 		addCheck("release_readiness", releaseReadinessCheckStatus(), buildReleaseReadiness().Reason, releaseReadinessCheckFix())
@@ -84,11 +88,14 @@ func runDoctor(_ *cobra.Command, _ []string) error {
 	result.Username = me.Username
 	result.DisplayName = me.DisplayName
 
-	// Step 4: server version (settings/systemInfo). Non-fatal: some instances
-	// restrict this endpoint to admins.
+	// Step 4: server version (settings/systemInfo). Best effort: some DC
+	// versions do not serve this endpoint (404) or restrict it to admins. Since
+	// the auth step already proved the server is reachable and the PAT is valid,
+	// an unreadable version is informational, not a warning — report pass with
+	// the version omitted rather than flagging a healthy instance.
 	if info, err := client.System.SystemInfo(); err != nil {
-		addCheck("server", "warn", "could not read settings/systemInfo: "+err.Error(),
-			"endpoint may be admin-only; connectivity is otherwise fine")
+		addCheck("server", "pass", "connected; server version endpoint unavailable on this instance",
+			"")
 	} else {
 		result.ServerVersion = info.Version
 		addCheck("server", "pass", "Confluence server version "+info.Version, "")
@@ -118,8 +125,8 @@ func printDoctorText(result doctorResult) {
 			output.Warn(c.Check + ": " + c.Message)
 		default:
 			output.Error(c.Check + ": " + c.Message)
-			if c.Fix != "" {
-				output.Gray("  fix: " + c.Fix)
+			if c.Fix != nil {
+				output.Gray("  fix: " + *c.Fix)
 			}
 		}
 	}
