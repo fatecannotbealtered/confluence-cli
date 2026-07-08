@@ -1,10 +1,10 @@
 ---
 name: confluence-cli
-version: "1.0.0"
+version: "1.0.1"
 description: "Confluence Data Center CLI for AI agents; triggers for Confluence DC page, space, attachment, comment, label, CQL search, user lookup, PAT auth, long-running task, audit, update, and automation tasks. Not for Confluence Cloud."
 license: MIT
 user-invocable: true
-metadata: {"requires":{"bins":["confluence-cli"],"min_version":"1.0.0"}}
+metadata: {"requires":{"bins":["confluence-cli"],"min_version":"1.0.1"}}
 ---
 
 # confluence-cli
@@ -126,6 +126,8 @@ confluence-cli reference --compact
 ```
 
 After a successful update, review `signature_status` and checksum status, confirm `skill_sync_status` is synced (else run the returned `skill_sync_command`), then read the changelog delta and refresh `reference` before using new behavior. On failure the result carries `stage` + `current_version` + `binary_replaced`; never retry an `E_INTEGRITY` failure — stop and report a supply-chain red flag.
+
+Successful update results are final-state: `current_version` must equal `target_version`, `update_available` must be `false`, and stale `update_available` notices must be cleared or suppressed before later commands attach `meta.notices`. A post-swap Skill-sync partial success must also expose `target_version` and `update_available:false` in its details. An already-current install must return a no-op result without running a package-manager install command.
 
 ## Search is the workhorse
 
