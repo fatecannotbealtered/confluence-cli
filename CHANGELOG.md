@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Raise the Go toolchain to 1.26.6 to clear four reachable Go standard-library
+  vulnerabilities reported by `govulncheck`: GO-2026-6218 (`net/url`),
+  GO-2026-6090 (`crypto/tls`), GO-2026-5972 (`encoding/asn1`), and
+  GO-2026-5026 (`net/http`).
+- Bump `github.com/sigstore/sigstore-go` to 1.3.0, which carries
+  `google.golang.org/grpc` up to 1.82.1 and clears GO-2026-6061. The release
+  verification path is the only caller, so this is an update-safety fix.
+
 ## [1.0.1] - 2026-07-08
 
 ### Fixed
