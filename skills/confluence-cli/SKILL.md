@@ -1,10 +1,10 @@
 ---
 name: confluence-cli
-version: "1.0.1"
+version: "1.0.2"
 description: "Confluence Data Center CLI for AI agents; triggers for Confluence DC page, space, attachment, comment, label, CQL search, user lookup, PAT auth, long-running task, audit, update, and automation tasks. Not for Confluence Cloud."
 license: MIT
 user-invocable: true
-metadata: {"requires":{"bins":["confluence-cli"],"min_version":"1.0.1"}}
+metadata: {"requires":{"bins":["confluence-cli"],"min_version":"1.0.2"}}
 ---
 
 # confluence-cli
